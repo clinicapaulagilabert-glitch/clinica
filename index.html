@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Listado pacientes · WhatsApp (selección múltiple)</title>
+<title>Listado pacientes · WhatsApp Pro</title>
 <style>
 :root{--bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;--muted:#8b6b6f;--text:#3b2b2d}
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;padding:28px}
+*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased;padding:28px}
 .app{max-width:1100px;margin:0 auto;background:linear-gradient(180deg,var(--card),#fff);border-radius:16px;padding:22px;box-shadow:0 8px 30px rgba(203,164,169,0.12);border:1px solid rgba(207,163,169,0.12)}
 header{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
@@ -25,16 +25,23 @@ th{color:var(--muted);font-weight:600}
 .card{background:linear-gradient(180deg,#fff,#fffafc);padding:14px;border-radius:12px;border:1px solid rgba(207,163,169,0.06)}
 .small{font-size:12px;color:var(--muted)}
 .actions td{white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
 @media (max-width:980px){.grid{grid-template-columns:1fr}.logo{display:none}}
 </style>
 </head>
 <body>
+<script>
+// Protección con contraseña
+const PASSWORD='clinica2025';
+let userPass=prompt('Introduce la contraseña para acceder a la app:');
+if(userPass!==PASSWORD){alert('Contraseña incorrecta');document.body.innerHTML='<h1 style="text-align:center;margin-top:100px;color:red">Acceso denegado</h1>';throw new Error('Acceso denegado');}
+</script>
 <div class="app">
   <header>
     <div class="logo">CL</div>
     <div>
       <h1>Listado de pacientes · Clínica estética</h1>
-      <p class="lead">Selecciona varios pacientes y usa "Enviar WhatsApp a seleccionados". (Opción 1: abre una pestaña por paciente)</p>
+      <p class="lead">Protegido, backup CSV, contador de filtros, fecha de inclusión y WhatsApp actualizado.</p>
     </div>
   </header>
 
@@ -48,14 +55,14 @@ th{color:var(--muted);font-weight:600}
         </select>
         <select id="filterCita"><option value="">Todas las citas</option><option>Confirmada</option><option>Pendiente</option></select>
       </div>
-
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
         <label><input id="selectAll" type="checkbox"> Seleccionar todo</label>
         <button id="sendSelected" class="btn-send">Enviar WhatsApp a seleccionados</button>
         <button id="markContacted" class="ghost">Marcar como contactado</button>
         <button id="deleteSelected" class="ghost">Borrar seleccionados</button>
+        <button id="downloadCSV" class="ghost">Descargar backup CSV</button>
       </div>
-
+      <div id="counter" class="small note">Mostrando 0 de 0 pacientes</div>
       <div class="table card">
         <table id="patientsTable">
           <thead>
@@ -68,6 +75,7 @@ th{color:var(--muted);font-weight:600}
               <th>Cita</th>
               <th>Notas</th>
               <th>Enviado</th>
+              <th>Fecha</th>
               <th></th>
             </tr>
           </thead>
@@ -94,101 +102,96 @@ th{color:var(--muted);font-weight:600}
         <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.06)" />
         <h4>Plantilla de mensaje</h4>
         <p class="small">Usa <code>{{nombre}}</code>, <code>{{tratamiento}}</code>, <code>{{mes}}</code></p>
-        <textarea id="template" rows="5" style="width:100%;border-radius:8px;padding:8px">Hola {{nombre}}, te recordamos tu tratamiento de {{tratamiento}} para el mes de {{mes}}. ¿Puedes confirmar tu asistencia?</textarea>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="preview" class="ghost">Vista previa</button>
-          <button id="sendAll" class="btn-send">Enviar a todos</button>
-        </div>
-        <p class="note small">Cuando se envía, la app intentará abrir una pestaña por paciente (permite pop-ups). Si tu navegador bloquea ventanas emergentes verás un aviso.</p>
+        <textarea id="template" rows="5" style="width:100%;border-radius:8px;padding:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde.
+Un saludo.</textarea>
       </div>
     </aside>
   </div>
 </div>
 
 <script>
-const LS_KEY='clinica_pacientes_v_select';
+// --- JavaScript completo ---
+const LS_KEY='clinica_pacientes_final';
 let patients=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
 let editingId=null;
+
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
-const fields={name:$('#name'),phone:$('#phone'),treatment:$('#treatment'),month:$('#month'),cita:$('#cita'),notes:$('#notes'),template:$('#template'),search:$('#search'),filterMonth:$('#filterMonth'),filterCita:$('#filterCita')};
 
-function saveToStorage(){localStorage.setItem(LS_KEY,JSON.stringify(patients));}
-function sanitizePhone(raw){if(!raw) return ''; let digits=raw.replace(/[^+0-9]/g,''); digits=digits.replace(/^00/,'+'); let plain=digits.replace(/[^0-9]/g,''); if(plain.length===9) plain='34'+plain; if(plain.length>9 && plain.startsWith('0')) plain=plain.replace(/^0+/,''); return plain;}
-function buildMessage(template,p){return template.replace(/{{\s*nombre\s*}}/gi,p.nombre||'').replace(/{{\s*tratamiento\s*}}/gi,p.tratamiento||'').replace(/{{\s*mes\s*}}/gi,p.mes||'');}
+function savePatients(){localStorage.setItem(LS_KEY,JSON.stringify(patients));renderTable();}
 
 function renderTable(){
-  const tbody=$('#patientsTable tbody'); tbody.innerHTML='';
-  const q=fields.search.value.trim().toLowerCase(); const monthF=fields.filterMonth.value; const citaF=fields.filterCita.value;
-  patients.forEach(p=>{
-    if(q && !(p.nombre||'').toLowerCase().includes(q) && !(p.tratamiento||'').toLowerCase().includes(q) && !((p.notes||'').toLowerCase().includes(q))) return;
-    if(monthF && p.mes !== monthF) return; if(citaF && p.cita !== citaF) return;
+  const tbody=$('#patientsTable tbody');
+  const search=$('#search').value.toLowerCase();
+  const filterMonth=$('#filterMonth').value;
+  const filterCita=$('#filterCita').value;
+  tbody.innerHTML='';
+  let count=0;
+  patients.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach((p,i)=>{
+    if(search&&!p.name.toLowerCase().includes(search)&&!p.treatment.toLowerCase().includes(search)&&!(p.notes||'').toLowerCase().includes(search))return;
+    if(filterMonth&&p.month!==filterMonth)return;
+    if(filterCita&&p.cita!==filterCita)return;
+    count++;
     const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td><input class="sel" type="checkbox" data-id="${p.id}"></td>
-      <td>${escapeHtml(p.nombre||'')}</td>
-      <td>${escapeHtml(p.telefono||'')}</td>
-      <td>${escapeHtml(p.tratamiento||'')}</td>
-      <td>${escapeHtml(p.mes||'')}</td>
-      <td>${escapeHtml(p.cita||'')}</td>
-      <td>${escapeHtml(p.notes||'')}</td>
-      <td>${p.sent?'<span class="pill">Enviado</span>':'Pendiente'}</td>
-      <td class="actions"><button class="btn-inline" data-edit="${p.id}">Editar</button> <button class="btn-inline" data-delete="${p.id}">Borrar</button> <button class="btn-inline" data-send="${p.id}">Enviar</button></td>
-    `;
+    tr.innerHTML=`<td><input type="checkbox" data-id="${i}"></td>
+    <td>${p.name}</td><td>${p.phone}</td><td>${p.treatment}</td><td>${p.month}</td><td>${p.cita}</td>
+    <td>${p.notes||''}</td><td>${p.sent?'✅':''}</td><td>${new Date(p.createdAt).toLocaleDateString()}</td>
+    <td><button data-edit="${i}" class="ghost">✎</button></td>`;
     tbody.appendChild(tr);
   });
-  // attach events
-  $$('.btn-inline[data-edit]').forEach(b=>b.onclick=e=>{ startEdit(e.currentTarget.dataset.edit); });
-  $$('.btn-inline[data-delete]').forEach(b=>b.onclick=e=>{ if(confirm('Borrar paciente?')){ patients=patients.filter(x=>x.id!==e.currentTarget.dataset.delete); saveToStorage(); renderTable(); } });
-  $$('.btn-inline[data-send]').forEach(b=>b.onclick=e=>{ sendSingle(e.currentTarget.dataset.send); });
+  $('#counter').textContent=`Mostrando ${count} de ${patients.length} pacientes`;
 }
 
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-
-function startEdit(id){const p=patients.find(x=>x.id===id); if(!p) return; editingId=id; fields.name.value=p.nombre; fields.phone.value=p.telefono; fields.treatment.value=p.tratamiento; fields.month.value=p.mes||''; fields.cita.value=p.cita||'Confirmada'; fields.notes.value=p.notes||'';}
-
-$('#save').onclick=()=>{
-  const name=fields.name.value.trim(); const phoneRaw=fields.phone.value.trim(); if(!name||!phoneRaw){alert('Nombre y teléfono obligatorios'); return;}
-  const newP={id:editingId||Date.now().toString(36), nombre:name, telefono:sanitizePhone(phoneRaw), tratamiento:fields.treatment.value, mes:fields.month.value, cita:fields.cita.value, notes:fields.notes.value, sent:false };
-  if(editingId){ patients = patients.map(p=>p.id===editingId? newP : p); } else { patients.unshift(newP); }
-  editingId=null; saveToStorage(); renderTable(); $('#reset').click();
+function addOrEditPatient(){
+  const name=$('#name').value.trim();
+  if(!name)return alert('Introduce el nombre');
+  const phone=$('#phone').value.trim();
+  const treatment=$('#treatment').value.trim();
+  const month=$('#month').value;
+  const cita=$('#cita').value;
+  const notes=$('#notes').value.trim();
+  const patient={name,phone,treatment,month,cita,notes,sent:false,createdAt:editingId!==null?patients[editingId].createdAt:new Date().toISOString()};
+  if(editingId!==null){patients[editingId]=patient;editingId=null;} else patients.push(patient);
+  $('#name').value='';$('#phone').value='';$('#treatment').value='';$('#month').value='';$('#cita').value='Confirmada';$('#notes').value='';
+  savePatients();
 }
 
-$('#reset').onclick=()=>{ editingId=null; fields.name.value=''; fields.phone.value=''; fields.treatment.value=''; fields.month.value=''; fields.cita.value='Confirmada'; fields.notes.value=''; }
-
-$('#search').addEventListener('input',renderTable); $('#filterMonth').addEventListener('change',renderTable); $('#filterCita').addEventListener('change',renderTable);
-
-$('#selectAll').addEventListener('change',e=>{ $$('.sel').forEach(ch=>ch.checked=e.target.checked); });
-
-function getSelectedIds(){ return $$('.sel').filter(ch=>ch.checked).map(ch=>ch.dataset.id); }
-
-function sendSingle(id){ const p = patients.find(x=>x.id===id); if(!p) return; const msg = buildMessage(fields.template.value,p); const tel = p.telefono; const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank'); if(!win) alert('Permite ventanas emergentes en tu navegador para enviar mensajes'); p.sent = true; saveToStorage(); renderTable(); }
+$('#save').addEventListener('click',addOrEditPatient);
+$('#reset').addEventListener('click',()=>{editingId=null;$('#name').value='';$('#phone').value='';$('#treatment').value='';$('#month').value='';$('#cita').value='Confirmada';$('#notes').value='';});
+$('#search,#filterMonth,#filterCita').addEventListener('input',renderTable);
+$('#filterMonth,#filterCita').addEventListener('change',renderTable);
+$('#patientsTable').addEventListener('click',e=>{
+  if(e.target.dataset.edit){
+    editingId=e.target.dataset.edit;
+    const p=patients[editingId];
+    $('#name').value=p.name;$('#phone').value=p.phone;$('#treatment').value=p.treatment;$('#month').value=p.month;$('#cita').value=p.cita;$('#notes').value=p.notes||'';
+  }
+});
+$('#selectAll').addEventListener('change',e=>{$$('#patientsTable tbody input[type=checkbox]').forEach(cb=>cb.checked=e.target.checked);});
 
 $('#sendSelected').addEventListener('click',()=>{
-  const ids = getSelectedIds(); if(ids.length===0){ alert('No hay pacientes seleccionados'); return; }
-  if(!confirm(`Se abrirán ${ids.length} pestañas/ventanas para enviar WhatsApp. ¿Continuar?`)) return;
-  let blocked=false;
-  ids.forEach(id=>{
-    const p = patients.find(x=>x.id===id); if(!p) return;
-    const msg = buildMessage(fields.template.value,p);
-    const win = window.open(`https://wa.me/${p.telefono}?text=${encodeURIComponent(msg)}`,'_blank');
-    if(!win) blocked=true; else p.sent=true;
+  const template=$('#template').value;
+  $$('#patientsTable tbody input[type=checkbox]:checked').forEach(cb=>{
+    const p=patients[cb.dataset.id];
+    const msg=template.replace(/{{nombre}}/g,p.name).replace(/{{mes}}/g,p.month).replace(/{{tratamiento}}/g,p.treatment);
+    window.open(`https://wa.me/${p.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
+    p.sent=true;
   });
-  if(blocked) alert('Algunas ventanas fueron bloqueadas por el navegador. Permite pop-ups y vuelve a intentarlo.');
-  saveToStorage(); renderTable();
+  savePatients();
 });
 
-$('#markContacted').addEventListener('click',()=>{ const ids=getSelectedIds(); if(ids.length===0){alert('No hay seleccionados');return;} patients.forEach(p=>{ if(ids.includes(p.id)) p.sent=true; }); saveToStorage(); renderTable(); });
+$('#markContacted').addEventListener('click',()=>{$$('#patientsTable tbody input[type=checkbox]:checked').forEach(cb=>patients[cb.dataset.id].cita='Confirmada');savePatients();});
+$('#deleteSelected').addEventListener('click',()=>{$$('#patientsTable tbody input[type=checkbox]:checked').forEach(cb=>patients.splice(cb.dataset.id,1));savePatients();});
 
-$('#deleteSelected').addEventListener('click',()=>{ const ids=getSelectedIds(); if(ids.length===0){alert('No hay seleccionados');return;} if(!confirm('Borrar pacientes seleccionados?')) return; patients = patients.filter(p=>!ids.includes(p.id)); saveToStorage(); renderTable(); });
-
-$('#sendAll').addEventListener('click',()=>{ if(patients.length===0){alert('No hay pacientes');return;} if(!confirm(`Se abrirán ${patients.length} pestañas para enviar a todos. Continuar?`)) return; let blocked=false; patients.forEach(p=>{ if(!p.sent){ const win=window.open(`https://wa.me/${p.telefono}?text=${encodeURIComponent(buildMessage(fields.template.value,p))}`,'_blank'); if(!win) blocked=true; else p.sent=true; }}); if(blocked) alert('Algunas ventanas fueron bloqueadas. Permite pop-ups.'); saveToStorage(); renderTable(); });
-
-// helper: populate sample data if empty (optional for first use)
-if(!patients || patients.length===0){ patients=[{id:Date.now().toString(36),nombre:'Ana García',telefono:'34655111222',tratamiento:'Mesoterapia',mes:'Octubre',cita:'Confirmada',notes:'Alergia a X',sent:false}]; saveToStorage(); }
+$('#downloadCSV').addEventListener('click',()=>{
+  let csv='Nombre,Teléfono,Tratamiento,Mes,Cita,Notas,Enviado,Fecha\n';
+  patients.forEach(p=>{csv+=`"${p.name}","${p.phone}","${p.treatment}","${p.month}","${p.cita}","${p.notes||''}","${p.sent}","${new Date(p.createdAt).toLocaleString()}"\n`;});
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='backup_pacientes.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+});
 
 renderTable();
 </script>
 </body>
 </html>
-Rename index file
