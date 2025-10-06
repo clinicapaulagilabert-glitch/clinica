@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Listado pacientes · Clínica (Drive + Import)</title>
+<title>Listado pacientes · Clínica Paula Gilabert</title>
 <style>
 :root{--bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;--muted:#8b6b6f;--text:#3b2b2d}
 *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased;padding:18px}
@@ -158,17 +158,18 @@ $('#downloadCSV').addEventListener('click', ()=>{ let csv = 'Nombre,Telefono,Tra
 
 // ----- CSV import (visible button) -----
 $('#importBtn').addEventListener('click', ()=> $('#hiddenImport').click());
-const hidden = document.createElement('input'); hidden.type='file'; hidden.accept='.csv'; hidden.id='hiddenImport'; hidden.style.display='none'; hidden.onchange = function(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(ev){ const text = ev.target.result.split('\n').filter(l=>l.trim()!==''); if(text.length<2) return alert('CSV vacío o formato no válido'); const headers = text[0].split(',').map(h=>h.trim().toLowerCase()); const imported = []; for(let i=1;i<text.length;i++){ const vals = text[i].split(','); if(vals.length < headers.length) continue; const row = {}; headers.forEach((h,idx)=> row[h] = vals[idx].replace(/^"|"$/g,'')); imported.push({ name: row['nombre']||row['name']||'', phone: sanitizePhone(row['telefono']||row['phone']||''), treatment: row['tratamiento']||row['treatment']||'', month: row['mes']||row['month']||'', cita: row['cita']||'Confirmada', notes: row['notas']||row['notes']||'', sent: (row['enviado']||'').toLowerCase()==='true', createdAt: row['fecha']||new Date().toISOString() }); }
-  // merge: keep existing, append imported
+const hidden = document.createElement('input'); hidden.type='file'; hidden.accept='.csv'; hidden.id='hiddenImport'; hidden.style.display='none'; hidden.onchange = function(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(ev){ const text = ev.target.result.replace(/\r/g,'').split('\n').filter(l=>l.trim()!==''); if(text.length<2) return alert('CSV vacío o formato no válido'); // detect separator
+  const sep = text[0].includes(';') ? ';' : ','; const headers = text[0].split(sep).map(h=>h.trim().toLowerCase()); const imported = []; for(let i=1;i<text.length;i++){ const vals = text[i].split(sep); if(vals.length < headers.length) continue; const row = {}; headers.forEach((h,idx)=> row[h] = vals[idx] ? vals[idx].replace(/^"|"$/g,'').trim() : ''); // map
+    imported.push({ name: row['nombre']||row['name']||'', phone: sanitizePhone(row['telefono']||row['telefono']||row['phone']||''), treatment: row['tratamiento']||row['treatment']||'', month: row['mes']||row['month']||'', cita: row['cita']||'Confirmada', notes: row['notas']||row['notes']||'', sent: (row['enviado']||'').toLowerCase()==='true', createdAt: row['fecha']||row['createdat']||new Date().toISOString() }); }
+  // append to existing
   patients = patients.concat(imported);
-  saveLocal(); alert('Importación completada'); }; r.readAsText(f); }; document.body.appendChild(hidden);
+  saveLocal(); alert('Importación completada: ' + imported.length + ' pacientes añadidos'); }; r.readAsText(f); }; document.body.appendChild(hidden);
 
 // ----- Google Drive integration -----
 function gapiInit(){ gapi.load('client', async ()=>{ await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); console.log('gapi ready'); }); }
 gapiInit();
 
-$('#btnDrive').addEventListener('click', ()=>{
-  tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: async (resp)=>{ if(resp.error){ console.error(resp); alert('Error autenticando en Google'); return; } accessToken = resp.access_token; $('#driveStatus').textContent = '✅ Conectado a Google Drive'; await loadOrCreateFile(); await syncToDrive(); } }); tokenClient.requestAccessToken(); });
+$('#btnDrive').addEventListener('click', ()=>{ tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: async (resp)=>{ if(resp.error){ console.error(resp); alert('Error autenticando en Google'); return; } accessToken = resp.access_token; $('#driveStatus').textContent = '✅ Conectado a Google Drive'; await loadOrCreateFile(); await syncToDrive(); } }); tokenClient.requestAccessToken(); });
 
 async function loadOrCreateFile(){ try{ const res = await gapi.client.drive.files.list({ q: `name='${DRIVE_FILE_NAME}' and trashed=false`, fields: 'files(id,name)' }); if(res.result.files && res.result.files.length>0){ fileId = res.result.files[0].id; await loadFileFromDrive(); } else { await createFileOnDrive(); } }catch(err){ console.error('list error',err); alert('Error al buscar archivo en Drive'); } }
 
