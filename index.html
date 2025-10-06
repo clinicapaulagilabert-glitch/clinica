@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Listado pacientes · Clínica Paula Gilabert</title>
+<title>Listado pacientes · Clínica (Drive + Import)</title>
 <style>
 :root{--bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;--muted:#8b6b6f;--text:#3b2b2d}
 *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased;padding:18px}
@@ -11,9 +11,6 @@
 .app{background:linear-gradient(180deg,var(--card),#fff);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(203,164,169,0.12);border:1px solid rgba(207,163,169,0.12)}
 header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
-h1{font-size:18px;margin:0}
-.lead{margin:0;color:var(--muted);font-size:13px}
-.grid{display:grid;grid-template-columns:1fr 380px;gap:14px}
 .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 input[type=text],select,textarea{padding:8px;border-radius:10px;border:1px solid rgba(150,120,125,0.12);background:rgba(255,255,255,0.7);width:100%}
 button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
@@ -26,12 +23,11 @@ th{color:var(--muted);font-weight:600}
 .card{background:linear-gradient(180deg,#fff,#fffafc);padding:12px;border-radius:10px;border:1px solid rgba(207,163,169,0.06)}
 .small{font-size:12px;color:var(--muted)}
 .note{font-size:12px;color:var(--muted);margin-top:8px}
-.footer-note{margin-top:12px;font-size:12px;color:var(--muted)}
 @media (max-width:980px){.grid{grid-template-columns:1fr}.logo{display:none}}
 </style>
 </head>
 <body>
-<!-- Load Google APIs -->
+<!-- Google APIs -->
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -40,160 +36,157 @@ th{color:var(--muted);font-weight:600}
     <header>
       <div class="logo">CL</div>
       <div>
-        <h1>Listado de pacientes · Clínica Paula Gilabert</h1>
-        <p class="lead">Protegido · Sincronización Drive · Backup CSV · Envío WhatsApp</p>
+        <h1 style="margin:0">Listado de pacientes · Clínica</h1>
+        <p class="small" style="margin:0">Protegido · Drive sincronizado · Import/Export CSV · WhatsApp</p>
       </div>
     </header>
 
-    <div id="topControls" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"></div>
-
-    <div class="grid">
-      <div>
-        <div class="controls">
-          <input id="search" type="text" placeholder="Buscar por nombre, tratamiento o nota" />
-          <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
-          <select id="filterCita"><option value="">Todas las citas</option><option>Confirmada</option><option>Pendiente</option></select>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:6px"><input id="selectAll" type="checkbox"> Seleccionar todo</label>
-          <button id="sendSelected">Enviar WhatsApp a seleccionados</button>
-          <button id="markContacted" class="ghost">Marcar como contactado</button>
-          <button id="deleteSelected" class="ghost">Borrar seleccionados</button>
-          <button id="downloadCSV" class="ghost">Descargar backup CSV</button>
-          <button id="btnDrive" class="ghost">Conectar con Google Drive</button>
-          <div id="driveStatus" class="small" style="margin-left:8px">Sincronización: no conectada</div>
-        </div>
-
-        <div id="counter" class="small note">Mostrando 0 de 0 pacientes</div>
-
-        <div class="table card" aria-live="polite">
-          <table id="patientsTable">
-            <thead>
-              <tr><th></th><th>Nombre</th><th>Teléfono</th><th>Tratamiento</th><th>Mes</th><th>Cita</th><th>Notas</th><th>Enviado</th><th>Fecha</th><th></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <aside>
-        <div class="card">
-          <h3 style="margin-top:0">Añadir / editar paciente</h3>
-          <div style="margin-bottom:8px"><label>Nombre</label><input id="name" type="text" placeholder="Ej. Ana García" /></div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1"><label>Teléfono</label><input id="phone" type="text" placeholder="Ej. +34655111222" /></div>
-            <div style="width:120px"><label>Mes</label><select id="month"><option value="">-</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select></div>
-          </div>
-          <div style="margin-bottom:8px"><label>Tratamiento</label><input id="treatment" type="text" placeholder="Ej. Mesoterapia" /></div>
-          <div style="margin-bottom:8px"><label>Cita</label><select id="cita"><option>Confirmada</option><option>Pendiente</option></select></div>
-          <div style="margin-bottom:8px"><label>Notas</label><textarea id="notes" rows="3" placeholder="Notas..."></textarea></div>
-          <div style="display:flex;gap:8px;justify-content:flex-end"><button id="save">Guardar</button><button id="reset" class="ghost">Nuevo</button></div>
-
-          <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.06)" />
-          <h4>Plantilla de mensaje</h4>
-          <p class="small">Usa <code>{{nombre}}</code> y <code>{{mes}}</code></p>
-          <textarea id="template" rows="5" style="width:100%;">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde.
-Un saludo.</textarea>
-
-          <div class="footer-note">Recuerda permitir ventanas emergentes para enviar WhatsApp (abre una pestaña por paciente).</div>
-        </div>
-      </aside>
+    <div class="controls" id="topControls">
+      <input id="search" type="text" placeholder="Buscar por nombre, tratamiento o nota" />
+      <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+      <select id="filterCita"><option value="">Todas las citas</option><option>Confirmada</option><option>Pendiente</option></select>
     </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px"><input id="selectAll" type="checkbox"> Seleccionar todo</label>
+      <button id="sendSelected">Enviar WhatsApp a seleccionados</button>
+      <button id="markContacted" class="ghost">Marcar como contactado</button>
+      <button id="deleteSelected" class="ghost">Borrar seleccionados</button>
+      <button id="downloadCSV" class="ghost">Descargar backup CSV</button>
+      <button id="importBtn" class="ghost">📂 Importar backup CSV</button>
+      <button id="btnDrive" class="ghost">Conectar con Google Drive</button>
+      <div id="driveStatus" class="small">Sincronización: no conectada</div>
+    </div>
+
+    <div id="counter" class="small note">Mostrando 0 de 0 pacientes</div>
+
+    <div class="table card">
+      <table id="patientsTable">
+        <thead>
+          <tr><th></th><th>Nombre</th><th>Teléfono</th><th>Tratamiento</th><th>Mes</th><th>Cita</th><th>Notas</th><th>Enviado</th><th>Fecha</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="height:18px"></div>
+
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Añadir / editar paciente</h3>
+      <div style="margin-bottom:8px"><label>Nombre</label><input id="name" type="text" placeholder="Ej. Ana García" /></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><label>Teléfono</label><input id="phone" type="text" placeholder="Ej. +34655111222" /></div>
+        <div style="width:120px"><label>Mes</label><select id="month"><option value="">-</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select></div>
+      </div>
+      <div style="margin-bottom:8px"><label>Tratamiento</label><input id="treatment" type="text" placeholder="Ej. Mesoterapia" /></div>
+      <div style="margin-bottom:8px"><label>Cita</label><select id="cita"><option>Confirmada</option><option>Pendiente</option></select></div>
+      <div style="margin-bottom:8px"><label>Notas</label><textarea id="notes" rows="3" placeholder="Notas..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button id="save">Guardar</button><button id="reset" class="ghost">Nuevo</button></div>
+
+      <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.06)" />
+      <h4>Plantilla de mensaje</h4>
+      <p class="small">Usa <code>{{nombre}}</code> y <code>{{mes}}</code></p>
+      <textarea id="template" rows="4" style="width:100%;">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde.\nUn saludo.</textarea>
+    </div>
+
+    <p class="footer-note">Recuerda permitir ventanas emergentes para enviar WhatsApp.</p>
   </div>
 </div>
 
+<input id="hiddenImport" type="file" accept=".csv" style="display:none" />
+
 <script>
-// ---- Config ----
+// ----- Config -----
 const CLIENT_ID = '521234179969-hrpf9mm4s5tmm2hl3afg5m9m9dmsqph3.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILE_NAME = 'pacientes_clinica.json';
-const LS_KEY = 'clinica_pacientes_sync';
+const LS_KEY = 'clinica_pacientes_sync_v2';
+const PASSWORD = 'clinica2025';
 
-// ---- State ----
+// ----- State -----
 let patients = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
 let editingIndex = null;
-let fileId = null;
 let accessToken = null;
 let tokenClient = null;
+let fileId = null;
 
-// ---- Helpers ----
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => Array.from(document.querySelectorAll(s));
-function sanitizePhone(raw){ if(!raw) return ''; let d = raw.replace(/[^+0-9]/g,''); if(d.startsWith('00')) d = '+' + d.slice(2); let plain = d.replace(/[^0-9]/g,''); if(plain.length===9) plain = '34' + plain; return plain; }
+// ----- Helpers -----
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function sanitizePhone(raw){ if(!raw) return ''; let d = raw.replace(/[^0-9+]/g,''); if(d.startsWith('00')) d = '+'+d.slice(2); let digits = d.replace(/\D/g,''); if(digits.length===9) digits = '34'+digits; return digits; }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-// ---- Persistence ----
+// ----- Password guard (first load) -----
+(function(){ const p = prompt('Introduce la contraseña para acceder:'); if(p !== PASSWORD){ alert('Contraseña incorrecta'); document.body.innerHTML = '<h1 style="text-align:center;margin-top:120px;color:#c44">Acceso denegado</h1>'; throw new Error('Acceso denegado'); }})();
+
+// ----- Render -----
+function renderTable(){ const tbody = $('#patientsTable tbody'); tbody.innerHTML=''; const q = $('#search').value.trim().toLowerCase(); const mf = $('#filterMonth').value; const cf = $('#filterCita').value; let shown=0; const ordered = patients.slice().sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt)); ordered.forEach((p,i)=>{ if(q && !( (p.name||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q) )) return; if(mf && p.month !== mf) return; if(cf && p.cita !== cf) return; shown++; const tr = document.createElement('tr'); tr.innerHTML = `
+      <td><input class="sel" type="checkbox" data-i="${i}"></td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.phone)}</td>
+      <td>${escapeHtml(p.treatment)}</td>
+      <td>${escapeHtml(p.month)}</td>
+      <td>${escapeHtml(p.cita)}</td>
+      <td>${escapeHtml(p.notes||'')}</td>
+      <td>${p.sent?'<span class="pill">Enviado</span>':''}</td>
+      <td>${new Date(p.createdAt).toLocaleString()}</td>
+      <td><button class="ghost edit" data-i="${i}">Editar</button></td>
+    `; tbody.appendChild(tr); }); $('#counter').textContent = `Mostrando ${shown} de ${patients.length} pacientes`; attachRowEvents(); }
+function attachRowEvents(){ $$('.edit').forEach(b=> b.onclick = e=>{ const i = Number(e.currentTarget.dataset.i); startEdit(i); }); }
+
+// ----- Persistence -----
 function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(patients)); renderTable(); if(accessToken && fileId) syncToDrive(); }
 
-// ---- Render ----
-function renderTable(){ const tbody = $('#patientsTable tbody'); tbody.innerHTML=''; const q = $('#search').value.trim().toLowerCase(); const mf = $('#filterMonth').value; const cf = $('#filterCita').value; let shown=0; const ordered = patients.slice().sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt)); ordered.forEach((p, idx)=>{ if(q && !( (p.name||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q) )) return; if(mf && p.month !== mf) return; if(cf && p.cita !== cf) return; shown++; const tr = document.createElement('tr'); tr.innerHTML = `
-    <td><input class="sel" type="checkbox" data-i="${idx}"></td>
-    <td>${escapeHtml(p.name)}</td>
-    <td>${escapeHtml(p.phone)}</td>
-    <td>${escapeHtml(p.treatment)}</td>
-    <td>${escapeHtml(p.month)}</td>
-    <td>${escapeHtml(p.cita)}</td>
-    <td>${escapeHtml(p.notes||'')}</td>
-    <td>${p.sent?'<span class="pill">Enviado</span>':''}</td>
-    <td>${new Date(p.createdAt).toLocaleString()}</td>
-    <td><button class="ghost edit-btn" data-i="${idx}">Editar</button></td>
-  `; tbody.appendChild(tr); }); $('#counter').textContent = `Mostrando ${shown} de ${patients.length} pacientes`; attachRowEvents(); }
-
-function attachRowEvents(){ $$('.edit-btn').forEach(b=> b.onclick = (e)=>{ const i = Number(e.currentTarget.dataset.i); startEdit(i); }); }
-
-// ---- CRUD ----
+// ----- CRUD -----
 function startEdit(i){ editingIndex = i; const p = patients[i]; $('#name').value = p.name; $('#phone').value = p.phone; $('#treatment').value = p.treatment; $('#month').value = p.month; $('#cita').value = p.cita; $('#notes').value = p.notes||''; }
-$('#save').addEventListener('click', ()=>{ const name = $('#name').value.trim(); const phoneRaw = $('#phone').value.trim(); if(!name||!phoneRaw) return alert('Nombre y teléfono obligatorios'); const p = { name, phone: sanitizePhone(phoneRaw), treatment: $('#treatment').value.trim(), month: $('#month').value, cita: $('#cita').value, notes: $('#notes').value.trim(), sent: false, createdAt: editingIndex!==null ? patients[editingIndex].createdAt : new Date().toISOString() }; if(editingIndex!==null){ patients[editingIndex] = p; editingIndex = null; } else { patients.push(p); } $('#name').value=''; $('#phone').value=''; $('#treatment').value=''; $('#month').value=''; $('#cita').value='Confirmada'; $('#notes').value=''; saveLocal(); });
+$('#save').addEventListener('click', ()=>{ const name = $('#name').value.trim(); const phoneRaw = $('#phone').value.trim(); if(!name || !phoneRaw) return alert('Nombre y teléfono obligatorios'); const p = { name, phone: sanitizePhone(phoneRaw), treatment: $('#treatment').value.trim(), month: $('#month').value, cita: $('#cita').value, notes: $('#notes').value.trim(), sent: false, createdAt: editingIndex!==null ? patients[editingIndex].createdAt : new Date().toISOString() }; if(editingIndex!==null){ patients[editingIndex] = p; editingIndex = null; } else { patients.push(p); } $('#name').value=''; $('#phone').value=''; $('#treatment').value=''; $('#month').value=''; $('#cita').value='Confirmada'; $('#notes').value=''; saveLocal(); });
 $('#reset').addEventListener('click', ()=>{ editingIndex = null; $('#name').value=''; $('#phone').value=''; $('#treatment').value=''; $('#month').value=''; $('#cita').value='Confirmada'; $('#notes').value=''; });
 
-// ---- Selection helpers ----
-$('#selectAll').addEventListener('change', (e)=>{ $$('#patientsTable tbody input.sel').forEach(cb=> cb.checked = e.target.checked); });
+// ----- Selection -----
+$('#selectAll').addEventListener('change', e=>{ $$('#patientsTable tbody input.sel').forEach(cb=> cb.checked = e.target.checked); });
 function getSelectedIndexes(){ return $$('#patientsTable tbody input.sel').filter(cb=>cb.checked).map(cb=> Number(cb.dataset.i)); }
 
-// ---- WhatsApp send ----
-$('#sendSelected').addEventListener('click', ()=>{
-  const ids = getSelectedIndexes(); if(ids.length===0) return alert('No hay pacientes seleccionados'); if(!confirm(`Se abrirán ${ids.length} pestañas para enviar WhatsApp. Continuar?`)) return; let blocked=false; ids.forEach(i=>{ const p = patients[i]; const tpl = $('#template').value; const msg = tpl.replace(/{{\s*nombre\s*}}/gi,p.name).replace(/{{\s*mes\s*}}/gi,p.month).replace(/{{\s*tratamiento\s*}}/gi,p.treatment); const tel = p.phone.replace(/\D/g,''); const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank'); if(!win) blocked=true; else p.sent = true; }); if(blocked) alert('Algunas ventanas fueron bloqueadas por el navegador. Permite pop-ups y vuelve a intentarlo.'); saveLocal(); });
+// ----- WhatsApp -----
+$('#sendSelected').addEventListener('click', ()=>{ const ids = getSelectedIndexes(); if(ids.length===0) return alert('No hay pacientes seleccionados'); if(!confirm(`Se abrirán ${ids.length} pestañas para enviar WhatsApp. Continuar?`)) return; let blocked=false; ids.forEach(i=>{ const p = patients[i]; const tpl = $('#template').value; const msg = tpl.replace(/{{\s*nombre\s*}}/gi,p.name).replace(/{{\s*mes\s*}}/gi,p.month).replace(/{{\s*tratamiento\s*}}/gi,p.treatment); const tel = p.phone.replace(/\D/g,''); const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank'); if(!win) blocked=true; else p.sent = true; }); if(blocked) alert('Algunas ventanas fueron bloqueadas por el navegador. Permite pop-ups y vuelve a intentarlo.'); saveLocal(); });
 
-// ---- Mark contacted / delete selected ----
+// ----- Mark / Delete -----
 $('#markContacted').addEventListener('click', ()=>{ const ids = getSelectedIndexes(); if(ids.length===0) return alert('No hay seleccionados'); ids.forEach(i=> patients[i].sent = true); saveLocal(); });
 $('#deleteSelected').addEventListener('click', ()=>{ const ids = getSelectedIndexes().sort((a,b)=>b-a); if(ids.length===0) return alert('No hay seleccionados'); if(!confirm('Borrar pacientes seleccionados?')) return; ids.forEach(i=> patients.splice(i,1)); saveLocal(); });
 
-// ---- CSV export/import ----
+// ----- CSV export -----
 $('#downloadCSV').addEventListener('click', ()=>{ let csv = 'Nombre,Telefono,Tratamiento,Mes,Cita,Notas,Enviado,Fecha\n'; patients.forEach(p=>{ csv += `"${(p.name||'').replace(/"/g,'""')}","${p.phone}","${(p.treatment||'').replace(/"/g,'""')}","${p.month}","${p.cita}","${(p.notes||'').replace(/"/g,'""')}","${p.sent}","${p.createdAt}"\n`; }); const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_pacientes.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); });
 
-// Import CSV via input (create hidden input)
-(function(){ const inp = document.createElement('input'); inp.type='file'; inp.accept='.csv'; inp.style.display='none'; inp.id='importCSV'; inp.onchange = function(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(ev){ const text = ev.target.result.split('\n').filter(l=>l.trim()!==''); const headers = text[0].split(',').map(h=>h.trim()); const imported = []; for(let i=1;i<text.length;i++){ const vals = text[i].split(','); if(vals.length < headers.length) continue; const obj = {}; headers.forEach((h,idx)=> obj[h.toLowerCase()] = vals[idx].replace(/^"|"$/g,'')); // map lowercased
-        // map fields to our model
-        imported.push({ name: obj['nombre']||obj['name']||'', phone: sanitizePhone(obj['telefono']||obj['phone']||''), treatment: obj['tratamiento']||obj['treatment']||'', month: obj['mes']||obj['month']||'', cita: obj['cita']||'Confirmada', notes: obj['notas']||obj['notes']||'', sent: (obj['enviado']||'').toLowerCase()==='true', createdAt: obj['fecha']||new Date().toISOString() }); }
-        // merge imported with existing, keeping existing first
-        patients = patients.concat(imported); saveLocal(); alert('Importación completada'); }; r.readAsText(f); }; document.body.appendChild(inp); // wire the button to open it
-  const importBtn = document.querySelector('button[onclick^="document.getElementById\'importCSV\'\)"], button'); // no-op
-  // Instead, we bind the visible import button
-  const visibleImportBtn = document.querySelector('button[onclick^="document.getElementById(\'importCSV\')"]') || document.querySelector('button'); if(visibleImportBtn) visibleImportBtn.onclick = ()=> inp.click(); }());
+// ----- CSV import (visible button) -----
+$('#importBtn').addEventListener('click', ()=> $('#hiddenImport').click());
+const hidden = document.createElement('input'); hidden.type='file'; hidden.accept='.csv'; hidden.id='hiddenImport'; hidden.style.display='none'; hidden.onchange = function(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(ev){ const text = ev.target.result.split('\n').filter(l=>l.trim()!==''); if(text.length<2) return alert('CSV vacío o formato no válido'); const headers = text[0].split(',').map(h=>h.trim().toLowerCase()); const imported = []; for(let i=1;i<text.length;i++){ const vals = text[i].split(','); if(vals.length < headers.length) continue; const row = {}; headers.forEach((h,idx)=> row[h] = vals[idx].replace(/^"|"$/g,'')); imported.push({ name: row['nombre']||row['name']||'', phone: sanitizePhone(row['telefono']||row['phone']||''), treatment: row['tratamiento']||row['treatment']||'', month: row['mes']||row['month']||'', cita: row['cita']||'Confirmada', notes: row['notas']||row['notes']||'', sent: (row['enviado']||'').toLowerCase()==='true', createdAt: row['fecha']||new Date().toISOString() }); }
+  // merge: keep existing, append imported
+  patients = patients.concat(imported);
+  saveLocal(); alert('Importación completada'); }; r.readAsText(f); }; document.body.appendChild(hidden);
 
-// ---- Google Drive integration ----
+// ----- Google Drive integration -----
 function gapiInit(){ gapi.load('client', async ()=>{ await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); console.log('gapi ready'); }); }
 gapiInit();
 
 $('#btnDrive').addEventListener('click', ()=>{
   tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: async (resp)=>{ if(resp.error){ console.error(resp); alert('Error autenticando en Google'); return; } accessToken = resp.access_token; $('#driveStatus').textContent = '✅ Conectado a Google Drive'; await loadOrCreateFile(); await syncToDrive(); } }); tokenClient.requestAccessToken(); });
 
-async function loadOrCreateFile(){ try{ const list = await gapi.client.drive.files.list({ q: `name='${DRIVE_FILE_NAME}' and trashed=false`, fields: 'files(id,name)' }); if(list.result.files && list.result.files.length>0){ fileId = list.result.files[0].id; await loadFile(); } else { await createFile(); } }catch(err){ console.error('Drive list error',err); }
-}
+async function loadOrCreateFile(){ try{ const res = await gapi.client.drive.files.list({ q: `name='${DRIVE_FILE_NAME}' and trashed=false`, fields: 'files(id,name)' }); if(res.result.files && res.result.files.length>0){ fileId = res.result.files[0].id; await loadFileFromDrive(); } else { await createFileOnDrive(); } }catch(err){ console.error('list error',err); alert('Error al buscar archivo en Drive'); } }
 
-async function createFile(){ try{ const metadata = { name: DRIVE_FILE_NAME, mimeType:'application/json' }; const body = JSON.stringify({ pacientes: patients }); const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(metadata)],{type:'application/json'})); form.append('file', new Blob([body],{type:'application/json'})); const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{ method:'POST', headers: { Authorization: 'Bearer ' + accessToken }, body: form }); const data = await res.json(); fileId = data.id; console.log('File created',fileId); }catch(err){ console.error('createFile',err); }
-}
+async function createFileOnDrive(){ try{ const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' }; const body = JSON.stringify({ pacientes: patients }); const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' })); form.append('file', new Blob([body], { type: 'application/json' })); const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken }, body: form }); const data = await resp.json(); fileId = data.id; console.log('File created', fileId); }catch(err){ console.error('create err',err); alert('Error creando archivo en Drive'); } }
 
-async function loadFile(){ try{ const res = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }); const raw = res.body || JSON.stringify(res.result) || '{}'; const data = typeof raw === 'string' ? JSON.parse(raw) : raw; if(Array.isArray(data.pacientes)){ patients = data.pacientes; saveLocal(); } console.log('Loaded file from Drive'); }catch(err){ console.error('loadFile',err); }
-}
+async function loadFileFromDrive(){ try{ const res = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }); const raw = res.body || JSON.stringify(res.result) || '{}'; const data = typeof raw === 'string' ? JSON.parse(raw) : raw; if(Array.isArray(data.pacientes)){ patients = data.pacientes; saveLocal(); } console.log('Loaded from Drive'); }catch(err){ console.error('load err',err); alert('Error cargando datos desde Drive'); } }
 
-async function syncToDrive(){ if(!fileId || !accessToken) return; try{ const content = JSON.stringify({ pacientes: patients }); const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,{ method:'PATCH', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: content }); if(!res.ok) console.error('sync failed', await res.text()); else console.log('Synced to Drive'); }catch(err){ console.error('syncToDrive err',err); } }
+async function syncToDrive(){ if(!fileId || !accessToken) return; try{ const content = JSON.stringify({ pacientes: patients }); const resp = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method:'PATCH', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: content }); if(!resp.ok) console.error('sync failed', await resp.text()); else console.log('Synced'); }catch(err){ console.error('sync err',err); } }
 
-// Sync when window closed
+// Sync on unload
 window.addEventListener('beforeunload', ()=>{ if(accessToken && fileId) syncToDrive(); });
 
-// Initial render
+// ----- Init UI events -----
+$('#search').addEventListener('input', renderTable);
+$('#filterMonth').addEventListener('change', renderTable);
+$('#filterCita').addEventListener('change', renderTable);
+
+// initial render
 renderTable();
 </script>
 </body>
