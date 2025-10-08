@@ -22,13 +22,13 @@ button{background:var(--accent);border:none;color:white;padding:8px 12px;border-
 button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.08);color:var(--text)}
 .table{background:transparent;border-radius:12px;padding:10px;overflow:auto;max-height:560px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:8px 6px;text-align:left;font-size:13px;border-bottom:1px dashed rgba(150,120,125,0.06);word-wrap:break-word}
+th,td{padding:8px 6px;text-align:left;font-size:13px;border-bottom:1px dashed rgba(150,120,125,0.06);word-wrap:break-word;white-space:normal}
 th{color:var(--muted);font-weight:600}
 .pill{display:inline-block;padding:6px 8px;border-radius:999px;background:#fff;border:1px solid rgba(207,163,169,0.18);color:var(--accent);font-weight:700}
 .card{background:linear-gradient(180deg,#fff,#fffafc);padding:14px;border-radius:12px;border:1px solid rgba(207,163,169,0.06)}
 .small{font-size:12px;color:var(--muted)}
 .note{font-size:12px;color:var(--muted);margin-top:8px}
-.right-panel{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(150,150,150,0.08);box-shadow:0 4px 8px rgba(0,0,0,0.04)}
+.right-panel{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(200,200,200,0.6);box-shadow:0 4px 8px rgba(0,0,0,0.04)}
 .banner{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#fff;border:1px solid rgba(207,163,169,0.12);padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(203,164,169,0.08);display:none;z-index:999}
 .spinner{width:16px;height:16px;border-radius:50%;border:3px solid rgba(207,163,169,0.25);border-top-color:var(--accent);animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -73,7 +73,18 @@ th{color:var(--muted);font-weight:600}
         <div class="table card" style="margin-top:8px">
           <table id="patientsTable">
             <thead>
-              <tr><th style="width:30px"></th><th>Nombre</th><th style="width:120px">Teléfono</th><th>Tratamiento</th><th style="width:90px">Mes</th><th style="width:90px">Cita</th><th>Notas</th><th style="width:80px">Enviado</th><th style="width:160px">Fecha</th><th style="width:60px"></th></tr>
+              <tr>
+                <th style="width:36px"></th>
+                <th style="width:220px">Nombre</th>
+                <th style="width:120px">Teléfono</th>
+                <th style="width:160px">Tratamiento</th>
+                <th style="width:90px">Mes</th>
+                <th style="width:90px">Cita</th>
+                <th style="width:200px">Notas</th>
+                <th style="width:80px">Enviado</th>
+                <th style="width:160px">Fecha</th>
+                <th style="width:60px"></th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -93,7 +104,7 @@ th{color:var(--muted);font-weight:600}
           </div>
           <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.06)" />
           <div class="small">Plantilla mensaje (puedes editar):</div>
-          <textarea id="template" rows="4" style="width:100%;margin-top:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde.\nUn saludo.</textarea>
+          <textarea id="template" rows="4" style="width:100%;margin-top:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde. Un saludo.</textarea>
         </div>
       </div>
     </div>
@@ -108,7 +119,7 @@ th{color:var(--muted);font-weight:600}
 const CLIENT_ID = '521234179969-hrpf9mm4s5tmm2hl3afg5m9m9dmsqph3.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILE_NAME = 'pacientes_clinica.json';
-const LS_KEY = 'clinica_pacientes_final_v4';
+const LS_KEY = 'clinica_pacientes_final_v5';
 const PASSWORD = 'clinica2025';
 
 // ---- State ----
@@ -131,16 +142,16 @@ function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;'
 
 // ---- Render ----
 function renderTable(){ const tbody = $('#patientsTable tbody'); tbody.innerHTML=''; const q = $('#search').value.trim().toLowerCase(); const mf = $('#filterMonth').value; const cf = $('#filterCita').value; let shown=0; const ordered = patients.slice().sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt)); ordered.forEach((p,i)=>{ if(q && !( (p.name||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q) )) return; if(mf && p.month !== mf) return; if(cf && p.cita !== cf) return; shown++; const tr = document.createElement('tr'); tr.innerHTML = `
-    <td><input class="sel" type="checkbox" data-i="${i}"></td>
-    <td>${escapeHtml(p.name)}</td>
-    <td>${escapeHtml(p.phone)}</td>
-    <td>${escapeHtml(p.treatment)}</td>
-    <td>${escapeHtml(p.month)}</td>
-    <td>${escapeHtml(p.cita)}</td>
-    <td>${escapeHtml(p.notes||'')}</td>
-    <td>${p.sent?'<span class="pill">Enviado</span>':''}</td>
-    <td>${new Date(p.createdAt).toLocaleString()}</td>
-    <td><button class="ghost edit" data-i="${i}">Editar</button></td>
+    <td style="text-align:center"><input class="sel" type="checkbox" data-i="${i}"></td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.name)}</td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.phone)}</td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.treatment)}</td>
+    <td style="text-align:left">${escapeHtml(p.month)}</td>
+    <td style="text-align:left">${escapeHtml(p.cita)}</td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.notes||'')}</td>
+    <td style="text-align:center">${p.sent?'<span class="pill">Enviado</span>':''}</td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${new Date(p.createdAt).toLocaleString()}</td>
+    <td style="text-align:center"><button class="ghost edit" data-i="${i}">Editar</button></td>
   `; tbody.appendChild(tr); }); $('#counter').textContent = `Mostrando ${shown} de ${patients.length} pacientes`; attachRowEvents(); }
 function attachRowEvents(){ $$('.edit').forEach(b=> b.onclick = e=>{ const i = Number(e.currentTarget.dataset.i); startEdit(i); }); }
 
@@ -166,12 +177,13 @@ $('#deleteSelected').addEventListener('click', ()=>{ const ids = getSelectedInde
 // ---- CSV export ----
 $('#downloadCSV').addEventListener('click', ()=>{ let csv = 'Nombre,Telefono,Tratamiento,Mes,Cita,Notas,Enviado,Fecha\n'; patients.forEach(p=>{ csv += `"${(p.name||'').replace(/"/g,'""')}","${p.phone}","${(p.treatment||'').replace(/"/g,'""')}","${p.month}","${p.cita}","${(p.notes||'').replace(/"/g,'""')}","${p.sent}","${p.createdAt}"\n`; }); const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_pacientes.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); showBanner('✅ Backup CSV descargado'); });
 
-// ---- CSV import (robust) ----
+// ---- CSV import (robust, REPLACE current) ----
 $('#importBtn').addEventListener('click', ()=> $('#fileInput').click());
 $('#fileInput').addEventListener('change', async function(e){ const file = e.target.files[0]; if(!file) return; try{ const arr = await file.arrayBuffer(); let text=''; try{ text = new TextDecoder('utf-8',{fatal:true}).decode(arr); }catch(err){ text = new TextDecoder('windows-1252').decode(arr); }
-    const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!==''); if(lines.length < 2) return alert('CSV vacío o con formato no válido'); const first = lines[0]; let sep = ','; if(first.includes(';') && !first.includes(',')) sep = ';'; else if(first.includes(';') && first.split(';').length > first.split(',').length) sep = ';'; else if(first.includes('\t')) sep='\t'; const headersRaw = lines[0].split(sep).map(h=>h.trim()); const headers = headersRaw.map(h=> h.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase()); const imported = []; for(let i=1;i<lines.length;i++){ const vals = lines[i].split(sep).map(v=> v.trim().replace(/^"|"$/g,'')); if(vals.length < headers.length) continue; const row = {}; headers.forEach((hh,idx)=> row[hh] = vals[idx] || ''); const name = row['nombre']||row['name']||''; const phone = sanitizePhone(row['telefono']||row['telefono']||row['phone']||''); const treatment = row['tratamiento']||row['treatment']||''; const month = row['mes']||row['month']||''; const cita = row['cita']||'Confirmada'; const notes = row['notas']||row['notes']||''; const sent = (String(row['enviado']||'').toLowerCase()==='true'); const fechaRaw = row['fecha']||row['createdat']||''; let createdAt = new Date().toISOString(); if(fechaRaw){ const parsed = Date.parse(fechaRaw); if(isNaN(parsed)){ const m = fechaRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(m){ const day=Number(m[1]), mon=Number(m[2])-1, yr=Number(m[3]); createdAt = new Date(yr,mon,day).toISOString(); } } else createdAt = new Date(parsed).toISOString(); } imported.push({ name, phone, treatment, month, cita, notes, sent, createdAt }); }
-    patients = patients.concat(imported);
-    saveLocal(); showBanner(`✅ Se añadieron ${imported.length} pacientes desde backup`);
+    const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!==''); if(lines.length < 2) return alert('CSV vacío o con formato no válido'); const first = lines[0]; let sep = ','; if(first.includes(';') && !first.includes(',')) sep = ';'; else if(first.includes(';') && first.split(';').length > first.split(',').length) sep = ';'; else if(first.includes('\t')) sep='\t'; const headersRaw = lines[0].split(sep).map(h=>h.trim()); const headers = headersRaw.map(h=> h.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase()); const imported = []; for(let i=1;i<lines.length;i++){ const vals = lines[i].split(sep).map(v=> v.trim().replace(/^"|"$/g,'')); if(vals.length < headers.length) continue; const row = {}; headers.forEach((hh,idx)=> row[hh] = vals[idx] || ''); const name = row['nombre']||row['name']||''; const phone = sanitizePhone(row['telefono']||row['phone']||''); const treatment = row['tratamiento']||row['treatment']||''; const month = row['mes']||row['month']||''; const cita = row['cita']||'Confirmada'; const notes = row['notas']||row['notes']||''; const sent = (String(row['enviado']||'').toLowerCase()==='true'); const fechaRaw = row['fecha']||row['createdat']||''; let createdAt = new Date().toISOString(); if(fechaRaw){ const parsed = Date.parse(fechaRaw); if(isNaN(parsed)){ const m = fechaRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(m){ const day=Number(m[1]), mon=Number(m[2])-1, yr=Number(m[3]); createdAt = new Date(yr,mon,day).toISOString(); } } else createdAt = new Date(parsed).toISOString(); } imported.push({ name, phone, treatment, month, cita, notes, sent, createdAt }); }
+    // REPLACE current with imported
+    patients = imported;
+    saveLocal(); showBanner(`✅ Se importaron ${imported.length} pacientes y reemplazaron la lista actual`);
   }catch(err){ console.error('import err',err); alert('Error leyendo el CSV: '+err.message); } finally{ e.target.value = ''; } });
 
 // ---- Google Drive integration ----
