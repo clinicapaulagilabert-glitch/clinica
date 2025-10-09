@@ -104,15 +104,18 @@ button.edit{background:var(--accent);color:white;padding:6px 10px;border-radius:
 <script>
 (function(){ const PASSWORD='clinica2025'; const p = prompt('Contraseña:'); if(p !== PASSWORD){ document.body.innerHTML='<h1>Acceso denegado</h1>'; throw new Error('No access'); }})();
 const $=s=>document.querySelector(s);
-let patients=JSON.parse(localStorage.getItem('clinica_pacientes_v7')||'[]');
-let editingIndex=null;const selectedIds=new Set();
 function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5)}
+let patients=JSON.parse(localStorage.getItem('clinica_pacientes_v8')||'[]');
+// MIGRACIÓN: asignar id si falta
+patients.forEach(p=>{ if(!p.id){ p.id=uid(); }});
+localStorage.setItem('clinica_pacientes_v8',JSON.stringify(patients));
+let editingIndex=null;const selectedIds=new Set();
 function render(){const tbody=$('#patientsTable tbody');tbody.innerHTML='';patients.forEach(p=>{const checked=selectedIds.has(p.id)?'checked':'';const tr=document.createElement('tr');tr.innerHTML=`<td><input class='sel' type='checkbox' data-id='${p.id}' ${checked}></td>
-<td>${p.name}</td><td>${p.phone}</td><td>${p.treatment}</td><td>${p.month}</td><td>${p.cita}</td><td>${p.notes}</td><td>${p.sent?"✔️":""}</td>
-<td><button class='edit' data-id='${p.id}'>✏️</button></td><td>${new Date(p.createdAt).toLocaleString()}</td>`;tbody.appendChild(tr);});$('#counter').textContent=`${patients.length} pacientes`;}
+<td>${p.name||''}</td><td>${p.phone||''}</td><td>${p.treatment||''}</td><td>${p.month||''}</td><td>${p.cita||''}</td><td>${p.notes||''}</td><td>${p.sent?"✔️":""}</td>
+<td><button class='edit' data-id='${p.id}'>✏️</button></td><td>${new Date(p.createdAt||Date.now()).toLocaleString()}</td>`;tbody.appendChild(tr);});$('#counter').textContent=`${patients.length} pacientes`;}
 $('#patientsTable').addEventListener('click',e=>{const b=e.target.closest('button.edit');if(b){const id=b.dataset.id;const i=patients.findIndex(pp=>pp.id===id);if(i>=0)startEdit(i);}});
-function startEdit(i){editingIndex=i;const p=patients[i];$('#name').value=p.name;$('#phone').value=p.phone;$('#treatment').value=p.treatment;$('#month').value=p.month;$('#cita').value=p.cita;$('#notes').value=p.notes;}
-$('#save').onclick=()=>{const p={id:editingIndex!=null?patients[editingIndex].id:uid(),name:$('#name').value,phone:$('#phone').value,treatment:$('#treatment').value,month:$('#month').value,cita:$('#cita').value,notes:$('#notes').value,sent:false,createdAt:editingIndex!=null?patients[editingIndex].createdAt:new Date().toISOString()};if(editingIndex!=null){patients[editingIndex]=p;editingIndex=null;}else{patients.push(p);}localStorage.setItem('clinica_pacientes_v7',JSON.stringify(patients));render();};
+function startEdit(i){editingIndex=i;const p=patients[i];$('#name').value=p.name||'';$('#phone').value=p.phone||'';$('#treatment').value=p.treatment||'';$('#month').value=p.month||'';$('#cita').value=p.cita||'Confirmada';$('#notes').value=p.notes||'';}
+$('#save').onclick=()=>{const p={id:editingIndex!=null?patients[editingIndex].id:uid(),name:$('#name').value,phone:$('#phone').value,treatment:$('#treatment').value,month:$('#month').value,cita:$('#cita').value,notes:$('#notes').value,sent:false,createdAt:editingIndex!=null?patients[editingIndex].createdAt:new Date().toISOString()};if(editingIndex!=null){patients[editingIndex]=p;editingIndex=null;}else{patients.push(p);}localStorage.setItem('clinica_pacientes_v8',JSON.stringify(patients));render();};
 render();
 </script>
 </body>
