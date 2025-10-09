@@ -26,8 +26,8 @@ button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);colo
 .table-wrap::-webkit-scrollbar{height:10px;width:10px}
 .table-wrap::-webkit-scrollbar-thumb{background:rgba(150,120,125,0.25);border-radius:8px}
 /* table layout */
-table{min-width:1000px;width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:10px 8px;text-align:left;font-size:13px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
+table{min-width:920px;width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
 th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:2}
 /* row status colors */
 tr.row-sent{background:rgba(120,200,120,0.12)}
@@ -101,15 +101,15 @@ button.edit:hover{transform:translateY(-1px)}
             <thead>
               <tr>
                 <th style="width:36px"></th>
-                <th style="width:220px">Nombre</th>
-                <th style="width:120px">Teléfono</th>
-                <th style="width:160px">Tratamiento</th>
-                <th style="width:90px">Mes</th>
+                <th style="width:200px">Nombre</th>
+                <th style="width:110px">Teléfono</th>
+                <th style="width:140px">Tratamiento</th>
+                <th style="width:80px">Mes</th>
                 <th style="width:90px">Cita</th>
-                <th style="width:200px">Notas</th>
+                <th style="width:180px">Notas</th>
                 <th style="width:80px">Enviado</th>
-                <th style="width:160px">Fecha</th>
-                <th style="width:90px">Acciones</th>
+                <th style="width:100px">Acciones</th>
+                <th style="width:140px">Fecha</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -204,20 +204,31 @@ window.addEventListener('DOMContentLoaded', ()=>{
         <td>${escapeHtml(p.cita)}</td>
         <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.notes||'')}</td>
         <td style="text-align:center">${p.sent?'<span class="pill">Enviado</span>':''}</td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${new Date(p.createdAt).toLocaleString()}</td>
-        <td style="text-align:center"><button class="edit" data-id="${p.createdAt}">✏️ Editar</button></td>`;
+        <td style="text-align:center"><button class="edit" data-id="${p.createdAt}">✏️ Editar</button></td>
+        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${new Date(p.createdAt).toLocaleString()}</td>`;
       tbody.appendChild(tr);
     });
     $('#counter').textContent = `Mostrando ${shown} de ${patients.length} pacientes`;
-    attachRowEvents();
-    adjustTableHeight();
+adjustTableHeight();
   }
 
-  function attachRowEvents(){
-    // edits
-    $$('.edit').forEach(b=> b.onclick = e=>{
-      const id = e.currentTarget.dataset.id; const i = patients.findIndex(pp=>pp.createdAt===id); if(i<0) return; startEdit(i);
-    });
+  // Delegación de eventos para clicks y selección en la tabla (más robusto)
+  const tableEl = document.getElementById('patientsTable');
+  tableEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button.edit');
+    if(btn){
+      const id = btn.dataset.id;
+      const i = patients.findIndex(pp=>pp.createdAt===id);
+      if(i>=0) startEdit(i);
+    }
+  });
+  tableEl.addEventListener('change', (e)=>{
+    const cb = e.target.closest('input.sel');
+    if(cb){
+      const id = cb.dataset.id;
+      if(cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+    }
+  }););
     // selection persistence
     $$('#patientsTable tbody input.sel').forEach(cb=> cb.onchange = (e)=>{ const id = e.currentTarget.dataset.id; if(e.currentTarget.checked) selectedIds.add(id); else selectedIds.delete(id); });
   }
