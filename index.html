@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Listado pacientes · Clínica Paula Gilabert</title>
 <style>
-:root{--bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;--muted:#8b6b6f;--text:#3b2b2d}
+:root{--bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;--muted:#8B6B6F;--text:#3b2b2d}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased}
 .container{width:98vw;max-width:1600px;margin:8px auto;padding:8px}
@@ -25,7 +25,7 @@ button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);colo
 .table-wrap{border-radius:10px;border:1px solid rgba(207,163,169,0.06);background:linear-gradient(#fff,#fffafc);overflow:auto}
 .table-wrap::-webkit-scrollbar{height:10px;width:10px}
 .table-wrap::-webkit-scrollbar-thumb{background:rgba(150,120,125,0.25);border-radius:8px}
-/* table layout */
+/* table layout compact */
 table{min-width:920px;width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
 th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:2}
@@ -109,7 +109,7 @@ button.edit:hover{transform:translateY(-1px)}
                 <th style="width:180px">Notas</th>
                 <th style="width:80px">Enviado</th>
                 <th style="width:100px">Acciones</th>
-                <th style="width:140px">Fecha</th>
+                <th style="width:150px">Fecha</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -145,17 +145,17 @@ button.edit:hover{transform:translateY(-1px)}
 (function(){ const PASSWORD='clinica2025'; const p = prompt('Introduce la contraseña para acceder:'); if(p !== PASSWORD){ alert('Contraseña incorrecta'); document.body.innerHTML = '<h1 style="text-align:center;margin-top:120px;color:#c44">Acceso denegado</h1>'; throw new Error('Acceso denegado'); }})();
 
 window.addEventListener('DOMContentLoaded', ()=>{
-  // ---- Config ----
+  // ---- Config (Drive estable) ----
   const CLIENT_ID = '521234179969-hrpf9mm4s5tmm2hl3afg5m9m9dmsqph3.apps.googleusercontent.com';
   const SCOPES = 'https://www.googleapis.com/auth/drive.file';
   const DRIVE_FILE_NAME = 'pacientes_clinica.json';
-  const LS_KEY = 'clinica_pacientes_final_v7';
+  const LS_KEY = 'clinica_pacientes_final_v9';
 
   // ---- State ----
   let patients = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
   let editingIndex = null;
   let accessToken = null; let tokenClient = null; let fileId = null;
-  const selectedIds = new Set(); // persist selection across filters
+  const selectedIds = new Set(); // persist selection across filtros/orden
 
   // ---- Helpers ----
   const $ = s => document.querySelector(s);
@@ -166,11 +166,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   const MONTHS = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-  // ---- Height adjust only table area ----
+  // ---- Altura dinámica de la tabla ----
   function adjustTableHeight(){ const wrap = document.getElementById('tableWrap'); const rect = wrap.getBoundingClientRect(); const h = window.innerHeight - rect.top - 16; wrap.style.maxHeight = h + 'px'; wrap.style.height = h + 'px'; }
   window.addEventListener('resize', adjustTableHeight);
 
-  // ---- Render ----
+  // ---- Orden ----
   function sortPatients(arr){ const mode = $('#orderBy').value; const getMonthIndex = m => MONTHS.indexOf(m);
     const copy = arr.slice();
     if(mode==='fechaAsc') copy.sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt));
@@ -179,9 +179,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
     else if(mode==='mesAsc') copy.sort((a,b)=> getMonthIndex(a.month||'') - getMonthIndex(b.month||''));
     return copy;
   }
-
   function rowClass(p){ if(p.sent) return 'row-sent'; if((p.cita||'').toLowerCase()==='pendiente') return 'row-pending'; return 'row-confirmed'; }
 
+  // ---- Render ----
   function renderTable(){ const tbody = $('#patientsTable tbody'); tbody.innerHTML='';
     const q = $('#search').value.trim().toLowerCase(); const mf = $('#filterMonth').value; const cf = $('#filterCita').value;
     let filtered = patients.filter(p=>{
@@ -190,69 +190,54 @@ window.addEventListener('DOMContentLoaded', ()=>{
     const ordered = sortPatients(filtered);
     let shown=0;
     ordered.forEach(p=>{
-      // ensure each patient has an id
       if(!p.createdAt) p.createdAt = new Date().toISOString();
       shown++;
       const tr = document.createElement('tr'); tr.className = rowClass(p);
       const checked = selectedIds.has(p.createdAt) ? 'checked' : '';
       tr.innerHTML = `
-        <td style="text-align:center"><input class="sel" type="checkbox" data-id="${p.createdAt}" ${checked}></td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.name)}</td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.phone)}</td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.treatment)}</td>
+        <td style="text-align:center"><input class=\"sel\" type=\"checkbox\" data-id=\"${p.createdAt}\" ${checked}></td>
+        <td style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${escapeHtml(p.name)}</td>
+        <td style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${escapeHtml(p.phone)}</td>
+        <td style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${escapeHtml(p.treatment)}</td>
         <td>${escapeHtml(p.month)}</td>
         <td>${escapeHtml(p.cita)}</td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.notes||'')}</td>
-        <td style="text-align:center">${p.sent?'<span class="pill">Enviado</span>':''}</td>
-        <td style="text-align:center"><button class="edit" data-id="${p.createdAt}">✏️ Editar</button></td>
-        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${new Date(p.createdAt).toLocaleString()}</td>`;
+        <td style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${escapeHtml(p.notes||'')}</td>
+        <td style=\"text-align:center\">${p.sent?'<span class=\"pill\">Enviado</span>':''}</td>
+        <td style=\"text-align:center\"><button class=\"edit\" data-id=\"${p.createdAt}\">✏️ Editar</button></td>
+        <td style=\"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">${new Date(p.createdAt).toLocaleString()}</td>`;
       tbody.appendChild(tr);
     });
     $('#counter').textContent = `Mostrando ${shown} de ${patients.length} pacientes`;
-adjustTableHeight();
+    adjustTableHeight();
   }
 
-  // Delegación de eventos para clicks y selección en la tabla (más robusto)
+  // ---- Delegación eventos: editar + selección ----
   const tableEl = document.getElementById('patientsTable');
   tableEl.addEventListener('click', (e)=>{
     const btn = e.target.closest('button.edit');
-    if(btn){
-      const id = btn.dataset.id;
-      const i = patients.findIndex(pp=>pp.createdAt===id);
-      if(i>=0) startEdit(i);
-    }
+    if(btn){ const id = btn.dataset.id; const i = patients.findIndex(pp=>pp.createdAt===id); if(i>=0) startEdit(i); return; }
   });
   tableEl.addEventListener('change', (e)=>{
     const cb = e.target.closest('input.sel');
-    if(cb){
-      const id = cb.dataset.id;
-      if(cb.checked) selectedIds.add(id); else selectedIds.delete(id);
-    }
-  }););
-    // selection persistence
-    $$('#patientsTable tbody input.sel').forEach(cb=> cb.onchange = (e)=>{ const id = e.currentTarget.dataset.id; if(e.currentTarget.checked) selectedIds.add(id); else selectedIds.delete(id); });
-  }
-
+    if(cb){ const id = cb.dataset.id; if(cb.checked) selectedIds.add(id); else selectedIds.delete(id); }
+  });
   function getSelectedIndexes(){ return Array.from(selectedIds).map(id=> patients.findIndex(p=>p.createdAt===id)).filter(i=> i>=0); }
 
-  // ---- Persistence ----
+  // ---- Persistencia local + Drive (estable) ----
   function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(patients)); renderTable(); if(accessToken && fileId){ showSpinner(true); syncToDrive().then(()=> showSpinner(false)); } }
 
   // ---- CRUD ----
   function startEdit(i){ editingIndex = i; const p = patients[i]; $('#name').value = p.name||''; $('#phone').value = p.phone||''; $('#treatment').value = p.treatment||''; $('#month').value = p.month||''; $('#cita').value = p.cita||'Confirmada'; $('#notes').value = p.notes||''; }
   $('#save').addEventListener('click', ()=>{ const name = $('#name').value.trim(); const phoneRaw = $('#phone').value.trim(); if(!name || !phoneRaw) return alert('Nombre y teléfono obligatorios'); const base = { name, phone: sanitizePhone(phoneRaw), treatment: $('#treatment').value.trim(), month: $('#month').value, cita: $('#cita').value, notes: $('#notes').value.trim(), sent: false };
     if(editingIndex!==null){ base.createdAt = patients[editingIndex].createdAt; patients[editingIndex] = base; editingIndex = null; } else { base.createdAt = new Date().toISOString(); patients.push(base); }
-    // keep selection of the edited row
     selectedIds.add(base.createdAt);
-    // clear form
     $('#name').value=''; $('#phone').value=''; $('#treatment').value=''; $('#month').value=''; $('#cita').value='Confirmada'; $('#notes').value='';
     saveLocal(); showBanner('✅ Paciente guardado');
   });
 
-  // ---- Top controls ----
+  // ---- Controles superiores ----
   $('#selectAll').addEventListener('change', e=>{ const q = $('#search').value.trim().toLowerCase(); const mf = $('#filterMonth').value; const cf = $('#filterCita').value; const filtered = sortPatients(patients.filter(p=>{ const okQ = !q || (p.name||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q); const okM = !mf || p.month===mf; const okC = !cf || p.cita===cf; return okQ && okM && okC; }));
     if(e.target.checked) filtered.forEach(p=> selectedIds.add(p.createdAt)); else filtered.forEach(p=> selectedIds.delete(p.createdAt)); renderTable(); });
-
   $('#orderBy').addEventListener('change', renderTable);
   $('#search').addEventListener('input', renderTable);
   $('#filterMonth').addEventListener('change', renderTable);
@@ -261,21 +246,53 @@ adjustTableHeight();
   // ---- WhatsApp multiple ----
   $('#sendSelected').addEventListener('click', ()=>{ const idxs = getSelectedIndexes(); if(idxs.length===0) return showBanner('⚠️ No hay pacientes seleccionados'); if(!confirm(`Se abrirán ${idxs.length} pestañas para enviar WhatsApp. Continuar?`)) return; let blocked=false; idxs.forEach(i=>{ const p = patients[i]; const tpl = $('#template').value; const msg = tpl.replace(/{{\s*nombre\s*}}/gi,p.name).replace(/{{\s*mes\s*}}/gi,p.month).replace(/{{\s*tratamiento\s*}}/gi,p.treatment); const tel = (p.phone||'').replace(/\D/g,''); const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank'); if(!win) blocked=true; else p.sent = true; }); if(blocked) showBanner('⚠️ Algunas ventanas fueron bloqueadas. Permite pop-ups.'); saveLocal(); });
 
-  // ---- Mark / Delete -----
+  // ---- Marcar / Borrar -----
   $('#markContacted').addEventListener('click', ()=>{ const idxs = getSelectedIndexes(); if(idxs.length===0) return showBanner('⚠️ No hay seleccionados'); idxs.forEach(i=> patients[i].sent = true); saveLocal(); showBanner('✅ Seleccionados marcados como contactados'); });
   $('#deleteSelected').addEventListener('click', ()=>{ const ids = Array.from(selectedIds); if(ids.length===0) return showBanner('⚠️ No hay seleccionados'); if(!confirm('Borrar pacientes seleccionados?')) return; patients = patients.filter(p=> !selectedIds.has(p.createdAt)); selectedIds.clear(); saveLocal(); showBanner('✅ Pacientes eliminados'); });
 
-  // ---- CSV export ----
+  // ---- CSV export (igual que estable) ----
   $('#downloadCSV').addEventListener('click', ()=>{ try{ let csv = 'Nombre,Telefono,Tratamiento,Mes,Cita,Notas,Enviado,Fecha\n'; patients.forEach(p=>{ csv += `"${(p.name||'').replace(/"/g,'""')}","${p.phone||''}","${(p.treatment||'').replace(/"/g,'""')}","${p.month||''}","${p.cita||''}","${(p.notes||'').replace(/"/g,'""')}","${!!p.sent}","${p.createdAt}"\n`; }); const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_pacientes.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); showBanner('✅ Backup CSV descargado'); }catch(err){ console.error('download err',err); showBanner('Error al descargar backup'); } });
 
-  // ---- CSV import (REPLACE current) ----
+  // ---- CSV import (AÑADIR a existentes, tolerante) ----
   $('#importBtn').addEventListener('click', ()=> $('#fileInput').click());
-  $('#fileInput').addEventListener('change', async function(e){ const file = e.target.files[0]; if(!file) return; try{ const arr = await file.arrayBuffer(); let text=''; try{ text = new TextDecoder('utf-8',{fatal:true}).decode(arr); }catch(err){ text = new TextDecoder('windows-1252').decode(arr); }
-      const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!==''); if(lines.length < 2) return alert('CSV vacío o con formato no válido'); const first = lines[0]; let sep = ','; if(first.includes(';') && !first.includes(',')) sep = ';'; else if(first.includes(';') && first.split(';').length > first.split(',').length) sep = ';'; else if(first.includes('\t')) sep='\t'; const headersRaw = lines[0].split(sep).map(h=>h.trim()); const headers = headersRaw.map(h=> h.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase()); const imported = []; for(let i=1;i<lines.length;i++){ const vals = lines[i].split(sep).map(v=> v.trim().replace(/^"|"$/g,'')); if(vals.length < headers.length) continue; const row = {}; headers.forEach((hh,idx)=> row[hh] = vals[idx] || ''); const name = row['nombre']||row['name']||''; const phone = sanitizePhone(row['telefono']||row['phone']||''); const treatment = row['tratamiento']||row['treatment']||''; const month = row['mes']||row['month']||''; const cita = row['cita']||'Confirmada'; const notes = row['notas']||row['notes']||''; const sent = (String(row['enviado']||'').toLowerCase()==='true'); const fechaRaw = row['fecha']||row['createdat']||''; let createdAt = new Date().toISOString(); if(fechaRaw){ const parsed = Date.parse(fechaRaw); if(isNaN(parsed)){ const m = fechaRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(m){ const day=Number(m[1]), mon=Number(m[2])-1, yr=Number(m[3]); createdAt = new Date(yr,mon,day).toISOString(); } } else createdAt = new Date(parsed).toISOString(); } imported.push({ name, phone, treatment, month, cita, notes, sent, createdAt }); }
-      patients = imported; selectedIds.clear(); saveLocal(); showBanner(`✅ Se importaron ${imported.length} pacientes y reemplazaron la lista actual`);
+  $('#fileInput').addEventListener('change', async function(e){ const file = e.target.files[0]; if(!file) return; try{
+      const arr = await file.arrayBuffer();
+      let text='';
+      try{ text = new TextDecoder('utf-8',{fatal:true}).decode(arr); }
+      catch(err){ text = new TextDecoder('windows-1252').decode(arr); }
+      const clean = text.replace(/\r/g,'');
+      const lines = clean.split('\n').filter(l=>l.trim()!=='');
+      if(lines.length < 2) return alert('CSV vacío o con formato no válido');
+      let sep = ','; const first = lines[0];
+      if(first.includes('\t')) sep='\t'; else if(first.includes(';') && (!first.includes(',') || first.split(';').length>first.split(',').length)) sep=';';
+      const norm = s => (s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+      const headersRaw = first.split(sep).map(h=>h.trim());
+      const headers = headersRaw.map(h=> norm(h.replace(/Ã©/g,'e')));
+      const getVal = (rowObj, keys) => { for(const k of keys){ if(rowObj[k]!==undefined) return rowObj[k]; } return ''; };
+      const imported = [];
+      for(let i=1;i<lines.length;i++){
+        const vals = lines[i].split(sep).map(v=> v.trim().replace(/^"|"$/g,''));
+        if(vals.length < 2) continue;
+        const row = {}; headers.forEach((hh,idx)=> row[hh] = vals[idx] || '');
+        const name = getVal(row,['nombre','name']);
+        const phoneRaw = getVal(row,['telefono','telefono','teléfono','telÃ©fono','phone']);
+        const treatment = getVal(row,['tratamiento','treatment']);
+        const month = getVal(row,['mes','month']);
+        const cita = getVal(row,['cita']);
+        const notes = getVal(row,['notas','notes']);
+        const sentStr = String(getVal(row,['enviado','sent'])).toLowerCase();
+        const fechaRaw = getVal(row,['fecha','createdat','fecha de creacion']);
+        let createdAt = new Date().toISOString();
+        if(fechaRaw){ const parsed = Date.parse(fechaRaw); if(!isNaN(parsed)) createdAt = new Date(parsed).toISOString(); }
+        imported.push({ name, phone: sanitizePhone(phoneRaw), treatment, month, cita: cita||'Confirmada', notes, sent: (sentStr==='true'), createdAt });
+      }
+      // AÑADIR (permitir duplicados)
+      patients = patients.concat(imported);
+      saveLocal();
+      showBanner(`✅ Se añadieron ${imported.length} pacientes del CSV (duplicados permitidos)`);
     }catch(err){ console.error('import err',err); showBanner('Error leyendo el CSV'); } finally{ e.target.value = ''; } });
 
-  // ---- Google Drive integration ----
+  // ---- Google Drive (mismo flujo estable) ----
   function gapiInit(){ gapi.load('client', async ()=>{ await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); console.log('gapi ready'); }); }
   gapiInit();
 
@@ -293,7 +310,7 @@ adjustTableHeight();
   // Sync on unload
   window.addEventListener('beforeunload', ()=>{ if(accessToken && fileId) syncToDrive(); });
 
-  // initial render
+  // Inicial
   renderTable();
 });
 </script>
