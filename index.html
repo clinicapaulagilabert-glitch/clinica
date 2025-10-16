@@ -41,7 +41,64 @@ button.edit{background:var(--accent);color:white;padding:6px 10px;border-radius:
 </style>
 </head>
 <body>
-<!-- simplified structure, focus is styling -->
-<h1>Placeholder V9.9 - contenido reducido</h1>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<div class="container">
+  <div class="app">
+    <div class="header">
+      <div class="logo">CL</div>
+      <div>
+        <h1 class="title">Listado de pacientes · Clínica Paula Gilabert</h1>
+        <p class="lead">Protegido · Drive sincronizado · Import/Export CSV · Envío WhatsApp</p>
+      </div>
+    </div>
+    <div class="layout">
+      <div class="left">
+        <div class="controls">
+          <div class="controls-row">
+            <input id="search" type="text" placeholder="Buscar por nombre, teléfono, tratamiento o nota" style="flex:1;min-width:180px" />
+            <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+            <select id="filterContact"><option value="">Todos</option><option value="true">Contactado</option><option value="false">No contactado</option></select>
+            <select id="order"><option value="asc">Antiguos primero</option><option value="desc">Recientes primero</option></select>
+            <label><input type="checkbox" id="selectAll"> Seleccionar todo</label>
+            <button id="sendSelected" class="ghost">📲 Enviar WhatsApp seleccionados</button>
+            <button id="deleteSelected" class="ghost">🗑️ Borrar seleccionados</button>
+            <button id="downloadCSV" class="ghost">📤 Exportar backup</button>
+            <button id="importBtn" class="ghost">📥 Importar backup</button>
+            <button id="btnDrive" class="ghost">Conectar Drive</button>
+          </div>
+          <div class="controls-bottom">
+            <div id="driveStatus" class="small">❌ No conectado</div>
+            <div id="counter">Mostrando 0 de 0 · Seleccionados 0</div>
+          </div>
+          <div id="monthlySummary"></div>
+        </div>
+        <div class="table-wrap card" style="margin-top:6px;">
+          <table id="patientsTable">
+            <thead><tr><th></th><th>Nombre</th><th>Teléfono</th><th>Tratamiento</th><th>Mes</th><th>Notas</th><th>Contactado</th><th>Acciones</th><th>Fecha</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="right">
+        <div class="right-panel">
+          <input id="name" type="text" placeholder="Nombre" />
+          <input id="phone" type="text" placeholder="Teléfono (+346...)" />
+          <input id="treatment" type="text" placeholder="Tratamiento" />
+          <select id="month"><option value="">Mes</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+          <textarea id="notes" rows="4" placeholder="Notas..."></textarea>
+          <button id="save">Guardar</button>
+          <textarea id="template" rows="4">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde. Un saludo.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<input id="fileInput" type="file" accept=".csv" style="display:none" />
+<div id="bottomBanner" class="banner"></div>
+<script>
+(function(){const PASSWORD='clinica2025';const p=prompt('Introduce la contraseña para acceder:');if(p!==PASSWORD){alert('Contraseña incorrecta');document.body.innerHTML='<h1>Acceso denegado</h1>';throw new Error('Acceso denegado');}})();
+// JS para renderizar tabla con filas de colores y filtros, ordenación y resumen
+</script>
 </body>
 </html>
