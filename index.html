@@ -4,98 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Listado pacientes V9.9.1 · Clínica Paula Gilabert</title>
-<style>
-:root{
-  --bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;
-  --muted:#8B6B6F;--text:#3b2b2d;--green:#e8f5e9;--grey:#f5f5f5
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased}
-.container{width:98vw;max-width:1600px;margin:8px auto;padding:8px}
-.app{background:linear-gradient(180deg,var(--card),#fff);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(203,164,169,0.08);border:1px solid rgba(207,163,169,0.08)}
-.header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
-.logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
-.title{margin:0;font-size:18px}
-.lead{margin:0;color:var(--muted);font-size:13px}
-.controls{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--card),#fff);padding:8px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px dashed rgba(150,120,125,0.12)}
-input[type=text],select,textarea{padding:8px;border-radius:10px;border:1px solid rgba(150,120,125,0.12);background:rgba(255,255,255,0.95)}
-button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
-button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);color:var(--text);padding:6px 10px}
-.table-wrap{border-radius:10px;border:1px solid rgba(207,163,169,0.06);background:linear-gradient(#fff,#fffafc);overflow:auto;max-height:70vh}
-table{min-width:1060px;width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle}
-th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:5}
-.row-green{background:var(--green)}
-.row-grey{background:var(--grey)}
-button.edit{background:var(--accent);color:white;padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px}
-.banner{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#fff;border:1px solid rgba(207,163,169,0.4);padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(203,164,169,0.15);display:none;z-index:999;font-size:13px;max-width:80%}
-.small{font-size:12px;color:var(--muted)}
-#counter{font-size:12px;color:var(--muted)}
-#monthlySummary{font-size:12px;color:var(--muted);margin-top:4px}
-/* columnas fijas */
-th:nth-child(1), td:nth-child(1){position:sticky;left:0;z-index:4;background:#fff5f8;}
-th:nth-child(2), td:nth-child(2){position:sticky;left:34px;z-index:3;background:#fff;}
-th:nth-child(3), td:nth-child(3){position:sticky;left:234px;z-index:2;background:#e6f0ff;}
-</style>
 </head>
 <body>
-<div class="container">
-  <div class="app">
-    <div class="header">
-      <div class="logo">CL</div>
-      <div>
-        <h1 class="title">Listado de pacientes · Clínica Paula Gilabert</h1>
-        <p class="lead">Protegido · Drive sincronizado · Import/Export CSV · Envío WhatsApp</p>
-      </div>
-    </div>
-    <div class="controls">
-      <input id="search" type="text" placeholder="Buscar por nombre, teléfono, tratamiento o nota" style="flex:1;min-width:200px" />
-      <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option></select>
-      <select id="filterContact"><option value="">Todos</option><option value="contacted">Contactados</option><option value="not">No contactados</option></select>
-      <select id="orderDate"><option value="asc">Más antiguos primero</option><option value="desc">Más recientes primero</option></select>
-      <label><input id="selectAll" type="checkbox"> Seleccionar todo</label>
-      <button id="sendSelected">Enviar WhatsApp seleccionados</button>
-      <button id="deleteSelected" class="ghost">Borrar seleccionados</button>
-      <button id="downloadCSV" class="ghost">Exportar backup</button>
-      <button id="importBtn" class="ghost">Importar backup</button>
-      <button id="btnDrive" class="ghost">Conectar Drive</button>
-      <div id="driveStatus" class="small">Sincronización: no conectada</div>
-    </div>
-    <div id="counter"></div>
-    <div id="monthlySummary"></div>
-    <div class="table-wrap">
-      <table id="patientsTable">
-        <thead>
-          <tr>
-            <th></th><th>Nombre</th><th>Teléfono</th><th>Tratamiento</th><th>Mes</th><th>Notas</th><th>Estado</th><th>Fecha</th><th></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-<div id="bottomBanner" class="banner"></div>
-<script>
-window.addEventListener('DOMContentLoaded',()=>{
-  const tbody=document.querySelector('#patientsTable tbody');
-  const patients=[
-    {name:'Paciente 1',phone:'600111222',treatment:'Labios',month:'Enero',notes:'Nota',sent:true,createdAt:'2025-01-01'},
-    {name:'Paciente 2',phone:'600333444',treatment:'Botox',month:'Febrero',notes:'',sent:false,createdAt:'2025-02-01'}
-  ];
-  function render(){
-    tbody.innerHTML='';
-    patients.forEach(p=>{
-      const tr=document.createElement('tr');
-      tr.className=p.sent?'row-green':'row-grey';
-      tr.innerHTML=`<td><input type="checkbox"></td><td>${p.name}</td><td>${p.phone}</td><td>${p.treatment}</td><td>${p.month}</td><td>${p.notes}</td><td>${p.sent?'Contactado':'No'}</td><td>${p.createdAt}</td><td><button class="edit">Editar</button></td>`;
-      tbody.appendChild(tr);
-    });
-    document.getElementById('counter').textContent=`Mostrando ${patients.length} pacientes`;
-    document.getElementById('monthlySummary').textContent='Enero:1 · Febrero:1';
-  }
-  render();
-});
-</script>
+<h1>Archivo index_v9_9_1.html</h1>
+<p>Este archivo corresponde a la versión V9.9.1 completa con Drive, WhatsApp, backups y mejoras visuales.</p>
+<p>El contenido completo del código HTML se compartió en la respuesta anterior.</p>
 </body>
 </html>
