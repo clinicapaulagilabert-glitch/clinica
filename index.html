@@ -1,13 +1,464 @@
+<!-- Versión 9.9.1 · Clínica Paula Gilabert -->
 <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Listado pacientes V9.9.1 · Clínica Paula Gilabert</title>
+<style>
+:root{
+  --bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;
+  --muted:#8B6B6F;--text:#3b2b2d;--green:#e8f5e9;--grey:#f5f5f5
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fbf5f6);color:var(--text);-webkit-font-smoothing:antialiased}
+.container{width:98vw;max-width:1600px;margin:8px auto;padding:8px}
+.app{background:linear-gradient(180deg,var(--card),#fff);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(203,164,169,0.08);border:1px solid rgba(207,163,169,0.08)}
+.header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+.title{margin:0;font-size:18px}
+.lead{margin:0;color:var(--muted);font-size:13px}
+.layout{display:flex;gap:16px;min-height:70vh}
+.left{flex:1 1 auto;min-width:0}
+.right{flex:0 0 28%;min-width:260px;max-width:380px}
+/* Controles pegajosos por encima de todo */
+.controls{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--card),#fff);padding:8px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px dashed rgba(150,120,125,0.12);box-shadow:0 2px 0 rgba(150,120,125,0.08)}
+.controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%}
+input[type=text],select,textarea{padding:8px;border-radius:10px;border:1px solid rgba(150,120,125,0.12);background:rgba(255,255,255,0.95)}
+button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);color:var(--text);padding:6px 10px}
+/* Tabla */
+.table-wrap{border-radius:10px;border:1px solid rgba(207,163,169,0.06);background:linear-gradient(#fff,#fffafc);overflow:auto}
+table{min-width:1120px;width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
+th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:5}
+/* filas coloreadas */
+.row-green{background:var(--green)}
+.row-grey{background:var(--grey)}
+.contact-icon{cursor:pointer;font-size:16px}
+.contact-icon.green{color:green}
+.contact-icon.grey{color:#777}
+button.edit{background:var(--accent);color:white;padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px}
+/* Panel derecho (formulario) */
+.right-panel{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(200,200,200,0.9);box-shadow:0 10px 26px rgba(0,0,0,0.18)}
+.banner{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#fff;border:1px solid rgba(207,163,169,0.4);padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(203,164,169,0.15);display:none;z-index:999;font-size:13px;max-width:80%}
+.small{font-size:12px;color:var(--muted)}
+#counter{font-size:12px;color:var(--muted)}
+#monthlySummary{font-size:12px;color:var(--muted);margin-top:4px}
+/* === Columnas fijas: selección, nombre y teléfono === */
+th:nth-child(1), td:nth-child(1){position:sticky;left:0;z-index:4;background:#fff5f8;}
+th:nth-child(2), td:nth-child(2){position:sticky;left:38px;z-index:3;background:#fff;}
+th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background:#e6f0ff;} /* azul suave */
+/* Ajustes responsive */
+@media (max-width:980px){.layout{flex-direction:column}.right{order:2;max-width:100%;min-width:100%}}
+</style>
 </head>
 <body>
-<h1>Archivo index_v9_9_1.html</h1>
-<p>Este archivo corresponde a la versión V9.9.1 completa con Drive, WhatsApp, backups y mejoras visuales.</p>
-<p>El contenido completo del código HTML se compartió en la respuesta anterior.</p>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<div class="container">
+  <div class="app">
+    <div class="header">
+      <div class="logo">CL</div>
+      <div>
+        <h1 class="title">Listado de pacientes · Clínica Paula Gilabert</h1>
+        <p class="lead">Protegido · Drive sincronizado · Import/Export CSV · Envío WhatsApp</p>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="left">
+        <div class="controls">
+          <div class="row">
+            <input id="search" type="text" placeholder="Buscar por nombre, teléfono, tratamiento o nota" style="flex:1;min-width:180px" />
+            <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+            <select id="filterContact"><option value="">Todos</option><option value="true">Contactado</option><option value="false">No contactado</option></select>
+            <select id="order"><option value="asc">Antiguos primero</option><option value="desc">Recientes primero</option></select>
+            <label><input type="checkbox" id="selectAll"> Seleccionar todo</label>
+            <button id="sendSelected" class="ghost">📲 Enviar WhatsApp seleccionados</button>
+            <button id="deleteSelected" class="ghost">🗑️ Borrar seleccionados</button>
+            <button id="downloadCSV" class="ghost">📤 Exportar backup</button>
+            <button id="importBtn" class="ghost">📥 Importar backup</button>
+            <button id="btnDrive" class="ghost">Conectar Drive</button>
+          </div>
+          <div class="row" style="justify-content:space-between">
+            <div id="driveStatus" class="small">❌ No conectado</div>
+            <div id="counter" class="small">Mostrando 0 de 0 · Seleccionados 0</div>
+          </div>
+          <div id="monthlySummary"></div>
+        </div>
+
+        <div class="table-wrap card" id="tableWrap">
+          <table id="patientsTable">
+            <thead><tr>
+              <th style="width:38px"></th>
+              <th style="width:200px">Nombre</th>
+              <th style="width:200px">Teléfono</th>
+              <th style="width:160px">Tratamiento</th>
+              <th style="width:100px">Mes</th>
+              <th style="width:240px">Notas</th>
+              <th style="width:110px">Contactado</th>
+              <th style="width:100px">Acciones</th>
+              <th style="width:180px">Fecha</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="right-panel">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <input id="name" type="text" placeholder="Nombre" />
+            <input id="phone" type="text" placeholder="Teléfono (+346...)" />
+            <input id="treatment" type="text" placeholder="Tratamiento" />
+            <select id="month" style="width:100%"><option value="">Mes</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+            <textarea id="notes" rows="4" placeholder="Notas..."></textarea>
+            <button id="save" style="width:100%">Guardar</button>
+          </div>
+          <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.12)" />
+          <div class="small">Plantilla WhatsApp (editable):</div>
+          <textarea id="template" rows="5" style="width:100%;margin-top:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana o la tarde. Un saludo.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input id="fileInput" type="file" accept=".csv" style="display:none" />
+<div id="bottomBanner" class="banner"></div>
+
+<script>
+// ---- Password ----
+(function(){
+  const PASSWORD='clinica2025';
+  const p=prompt('Introduce la contraseña para acceder:');
+  if(p!==PASSWORD){
+    alert('Contraseña incorrecta');
+    document.body.innerHTML='<h1>Acceso denegado</h1>';
+    throw new Error('Acceso denegado');
+  }
+})();
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // ---- Config ----
+  const CLIENT_ID='521234179969-hrpf9mm4s5tmm2hl3afg5m9m9dmsqph3.apps.googleusercontent.com';
+  const SCOPES='https://www.googleapis.com/auth/drive.file';
+  const DRIVE_FILE_NAME='pacientes_clinica.json';
+  const LS_KEY='clinica_pacientes_v9_9_1_full';
+
+  // ---- State ----
+  let patients = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  let accessToken=null, tokenClient=null, fileId=null, currentIndex=null;
+
+  // ---- Helpers ----
+  const $ = s=>document.querySelector(s);
+  const $$ = s=>Array.from(document.querySelectorAll(s));
+  function showBanner(m, t=3500){const b=$('#bottomBanner');b.textContent=m;b.style.display='block';setTimeout(()=>b.style.display='none',t);}
+  function sanitizePhone(raw){ if(!raw) return ''; let d=String(raw).replace(/[^0-9+]/g,''); if(d.startsWith('00')) d='+'+d.slice(2); let digits=d.replace(/\D/g,''); if(digits.length===9) digits='34'+digits; return digits; }
+  function csvEscape(s){ return String(s??'').replace(/"/g,'""'); }
+
+  // ---- Dynamic height for table ----
+  function fitTableHeight(){
+    const wrap = document.getElementById('tableWrap');
+    const rect = wrap.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    const desired = viewportH - rect.top - 16;
+    wrap.style.maxHeight = desired + 'px';
+  }
+  fitTableHeight();
+  window.addEventListener('resize', fitTableHeight);
+
+  // ---- Filters, ordering, summary ----
+  function computeFiltered(){
+    const q=$('#search').value.toLowerCase();
+    const mf=$('#filterMonth').value;
+    const cf=$('#filterContact').value;
+    const ord=$('#order').value;
+    let list = patients.filter(p=>{
+      if(q && !( (p.name||'').toLowerCase().includes(q) || (p.phone||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q))) return false;
+      if(mf && p.month!==mf) return false;
+      if(cf && String(!!p.sent)!==cf) return false;
+      return true;
+    });
+    list.sort((a,b)=> ord==='asc' ? (new Date(a.createdAt)-new Date(b.createdAt)) : (new Date(b.createdAt)-new Date(a.createdAt)));
+    return list;
+  }
+
+  function updateMonthlySummary(list){
+    if(!list.length){ $('#monthlySummary').textContent=''; return; }
+    const stats = {};
+    list.forEach(p=>{
+      const m = p.month||'Sin mes';
+      if(!stats[m]) stats[m]={total:0,c:0};
+      stats[m].total++;
+      if(p.sent) stats[m].c++;
+    });
+    const parts = Object.entries(stats).map(([m,d])=>`${m}: ${d.total} (${d.c} contactados, ${d.total-d.c} pendientes)`);
+    $('#monthlySummary').textContent = parts.join(' · ');
+  }
+
+  // ---- Render ----
+  function render(){
+    const tb = $('#patientsTable tbody'); tb.innerHTML='';
+    const filtered = computeFiltered();
+    filtered.forEach(p=>{
+      const idx = patients.indexOf(p);
+      const tr = document.createElement('tr');
+      tr.className = p.sent ? 'row-green' : 'row-grey';
+      tr.innerHTML = `
+        <td><input type="checkbox" class="sel" data-id="${idx}"></td>
+        <td>${p.name||''}</td>
+        <td>${p.phone||''}</td>
+        <td>${p.treatment||''}</td>
+        <td>${p.month||''}</td>
+        <td>${p.notes||''}</td>
+        <td style="text-align:center"><span class="contact-icon ${p.sent?'green':'grey'}" data-id="${idx}">${p.sent?'✔️':'❌'}</span></td>
+        <td><button class="edit" data-id="${idx}">Editar</button></td>
+        <td>${p.createdAt? new Date(p.createdAt).toLocaleString() : ''}</td>
+      `;
+      tb.appendChild(tr);
+    });
+    $$('.edit').forEach(b=> b.onclick = e=> startEdit(Number(e.currentTarget.dataset.id)));
+    $$('.contact-icon').forEach(i=> i.onclick = e=> toggleContact(Number(e.currentTarget.dataset.id)));
+
+    const selected = $$('#patientsTable tbody .sel:checked').length;
+    $('#counter').textContent = `Mostrando ${filtered.length} de ${patients.length} · Seleccionados ${selected}`;
+    updateMonthlySummary(filtered);
+    fitTableHeight();
+  }
+
+  // ---- Persistence ----
+  function saveLocal(sync=true){
+    localStorage.setItem(LS_KEY, JSON.stringify(patients));
+    render();
+    if(sync && accessToken && fileId){ syncToDrive(); }
+  }
+
+  // ---- CRUD ----
+  function startEdit(i){
+    const p = patients[i];
+    currentIndex = i;
+    $('#name').value = p.name || '';
+    $('#phone').value = p.phone || '';
+    $('#treatment').value = p.treatment || '';
+    $('#month').value = p.month || '';
+    $('#notes').value = p.notes || '';
+  }
+  $('#save').onclick = ()=>{
+    const name = $('#name').value.trim();
+    const phone = sanitizePhone($('#phone').value.trim());
+    if(!name || !phone){ alert('Nombre y teléfono son obligatorios'); return; }
+    const obj = {
+      name,
+      phone,
+      treatment: $('#treatment').value.trim(),
+      month: $('#month').value,
+      notes: $('#notes').value.trim(),
+      sent: (currentIndex!=null ? !!patients[currentIndex].sent : false),
+      createdAt: (currentIndex!=null && patients[currentIndex].createdAt) ? patients[currentIndex].createdAt : new Date().toISOString()
+    };
+    if(currentIndex!=null){ patients[currentIndex] = obj; currentIndex=null; }
+    else { patients.push(obj); }
+    $('#name').value=$('#phone').value=$('#treatment').value=$('#notes').value=''; $('#month').value='';
+    $('#selectAll').checked=false;
+    showBanner('✅ Guardado');
+    saveLocal(true);
+  };
+
+  function toggleContact(i){
+    patients[i].sent = !patients[i].sent;
+    saveLocal(true);
+  }
+
+  // ---- Selection ----
+  $('#selectAll').onchange = e=>{
+    $$('#patientsTable tbody .sel').forEach(cb=> cb.checked = e.target.checked);
+    const selected = $$('#patientsTable tbody .sel:checked').length;
+    const filtered = computeFiltered();
+    $('#counter').textContent = `Mostrando ${filtered.length} de ${patients.length} · Seleccionados ${selected}`;
+  };
+
+  function getSelectedIds(){
+    return $$('#patientsTable tbody .sel:checked').map(cb=> Number(cb.dataset.id));
+  }
+
+  // ---- WhatsApp ----
+  $('#sendSelected').onclick = ()=>{
+    const ids = getSelectedIds();
+    if(ids.length===0){ showBanner('⚠️ No hay seleccionados'); return; }
+    const tpl = $('#template').value;
+    let blocked=false;
+    ids.forEach(i=>{
+      const p = patients[i];
+      const msg = tpl
+        .replace(/{{\s*nombre\s*}}/gi, p.name||'')
+        .replace(/{{\s*mes\s*}}/gi, p.month||'')
+        .replace(/{{\s*tratamiento\s*}}/gi, p.treatment||'');
+      const tel = (p.phone||'').replace(/\D/g,'');
+      const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+      if(!win) blocked=true;
+      p.sent = true;
+    });
+    if(blocked) showBanner('⚠️ Algunas ventanas fueron bloqueadas. Permite pop-ups.');
+    saveLocal(true);
+    showBanner('📲 WhatsApp enviado a seleccionados');
+  };
+
+  // ---- Export/Import CSV ----
+  function exportCSVSnapshot(prefix='backup_pacientes'){
+    let csv='Nombre,Telefono,Tratamiento,Mes,Notas,Contactado,Fecha\n';
+    patients.forEach(p=>{
+      csv += `"${csvEscape(p.name)}","${p.phone}","${csvEscape(p.treatment)}","${csvEscape(p.month)}","${csvEscape(p.notes)}","${!!p.sent}","${p.createdAt||''}"\n`;
+    });
+    const ts = new Date().toISOString().replace(/[:.]/g,'').slice(0,15);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download=`${prefix}_${ts}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  $('#downloadCSV').onclick = ()=> exportCSVSnapshot('backup_pacientes');
+
+  $('#deleteSelected').onclick = ()=>{
+    const ids = getSelectedIds().sort((a,b)=>b-a);
+    if(ids.length===0){ showBanner('⚠️ No hay seleccionados'); return; }
+    if(!confirm('Se hará un backup CSV y luego se borrarán los seleccionados. ¿Continuar?')) return;
+    exportCSVSnapshot('backup_pre_borrado');
+    ids.forEach(i=> patients.splice(i,1));
+    showBanner('🗑️ Seleccionados borrados');
+    saveLocal(true);
+  };
+
+  function parseCSV(text){
+    const rows=[]; let cur=[], curVal='', inQuotes=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i], next=text[i+1];
+      if(inQuotes){
+        if(ch==='"' && next==='"'){ curVal+='"'; i++; }
+        else if(ch==='"'){ inQuotes=false; }
+        else { curVal+=ch; }
+      }else{
+        if(ch===','){ cur.push(curVal); curVal=''; }
+        else if(ch==='\n'){ cur.push(curVal); rows.push(cur); cur=[]; curVal=''; }
+        else if(ch==='"'){ inQuotes=true; }
+        else if(ch!=='\r'){ curVal+=ch; }
+      }
+    }
+    if(curVal.length>0 || cur.length>0){ cur.push(curVal); rows.push(cur); }
+    return rows;
+  }
+
+  $('#importBtn').onclick = ()=> $('#fileInput').click();
+  $('#fileInput').addEventListener('change', async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    const rows = parseCSV(text.trim());
+    if(rows.length && rows[0].length && /nombre/i.test(rows[0][0])) rows.shift();
+    const imported = rows.map(c=>({
+      name:c[0]||'',
+      phone:sanitizePhone(c[1]||''),
+      treatment:c[2]||'',
+      month:c[3]||'',
+      notes:c[4]||'',
+      sent:String(c[5]||'').toLowerCase()==='true',
+      createdAt:c[6]||new Date().toISOString()
+    })).filter(p=>p.name||p.phone);
+    patients = patients.concat(imported);
+    saveLocal(true);
+    showBanner(`📥 Añadidos ${imported.length} pacientes del backup`);
+    e.target.value='';
+  });
+
+  // ---- Google Drive integration ----
+  gapi.load('client', async ()=>{
+    await gapi.client.init({ discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+  });
+
+  $('#btnDrive').onclick = ()=>{
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (r)=>{
+        if(r && r.access_token){
+          accessToken = r.access_token;
+          $('#driveStatus').textContent = '✅ Conectado a Google Drive';
+          await loadOrCreateFile();
+          await syncToDrive();
+        }else{
+          showBanner('Error de autenticación con Google');
+        }
+      }
+    });
+    tokenClient.requestAccessToken({prompt:''});
+  };
+
+  async function ensureToken(){ try{ tokenClient && tokenClient.requestAccessToken({prompt:''}); }catch(e){} }
+
+  async function loadOrCreateFile(){
+    try{
+      const res = await gapi.client.drive.files.list({ q:`name='${DRIVE_FILE_NAME}' and trashed=false`, fields:'files(id,name)' });
+      if(res.result.files && res.result.files.length){
+        fileId = res.result.files[0].id;
+        await loadFileFromDrive();
+      }else{
+        await createFileOnDrive();
+      }
+    }catch(err){ console.error('list',err); showBanner('Error listando en Drive'); }
+  }
+
+  async function createFileOnDrive(){
+    try{
+      await ensureToken();
+      const body = JSON.stringify({ pacientes: patients });
+      const r = await gapi.client.request({
+        path:'/upload/drive/v3/files?uploadType=media',
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body
+      });
+      fileId = r.result && r.result.id;
+      showBanner('✅ Archivo creado en Drive');
+    }catch(err){ console.error('create',err); showBanner('Error creando archivo en Drive'); }
+  }
+
+  async function loadFileFromDrive(){
+    try{
+      await ensureToken();
+      const r = await gapi.client.drive.files.get({ fileId, alt:'media' });
+      const data = (typeof r.body==='string') ? JSON.parse(r.body) : (r.result||{});
+      if(Array.isArray(data.pacientes)){
+        patients = data.pacientes;
+        saveLocal(false);
+        render();
+        showBanner('📂 Datos cargados de Drive');
+      }else{
+        showBanner('Archivo en Drive vacío o incompatible');
+      }
+    }catch(err){ console.error('load',err); showBanner('Error cargando archivo de Drive'); }
+  }
+
+  async function syncToDrive(){
+    if(!fileId) return;
+    try{
+      await ensureToken();
+      const body = JSON.stringify({ pacientes: patients });
+      await gapi.client.request({
+        path:`/upload/drive/v3/files/${fileId}?uploadType=media`,
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body
+      });
+    }catch(err){ console.error('sync',err); showBanner('Error sincronizando con Drive'); }
+  }
+
+  // ---- Events ----
+  $('#search').addEventListener('input', render);
+  $('#filterMonth').addEventListener('change', render);
+  $('#filterContact').addEventListener('change', render);
+  $('#order').addEventListener('change', render);
+
+  render();
+});
+</script>
 </body>
 </html>
