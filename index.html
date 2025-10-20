@@ -1,10 +1,9 @@
-<!-- Versión 9.9.1 · Clínica Paula Gilabert -->
 <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Listado pacientes V9.9.1 · Clínica Paula Gilabert</title>
+<title>Listado pacientes · Clínica Paula Gilabert</title>
 <style>
 :root{
   --bg:#f7eef2;--card:#fff5f7;--accent:#cfa3a9;--accent-2:#e9d7db;
@@ -21,41 +20,39 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe 
 .layout{display:flex;gap:16px;min-height:70vh}
 .left{flex:1 1 auto;min-width:0}
 .right{flex:0 0 28%;min-width:260px;max-width:380px}
-/* Controles pegajosos por encima de todo */
 .controls{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--card),#fff);padding:8px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px dashed rgba(150,120,125,0.12);box-shadow:0 2px 0 rgba(150,120,125,0.08)}
 .controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%}
 input[type=text],select,textarea{padding:8px;border-radius:10px;border:1px solid rgba(150,120,125,0.12);background:rgba(255,255,255,0.95)}
 button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
 button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);color:var(--text);padding:6px 10px}
-/* Tabla */
 .table-wrap{border-radius:10px;border:1px solid rgba(207,163,169,0.06);background:linear-gradient(#fff,#fffafc);overflow:auto}
 table{min-width:1120px;width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
 th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:5}
-/* filas coloreadas */
 .row-green{background:var(--green)}
 .row-grey{background:var(--grey)}
+contact-icon{cursor:pointer;font-size:16px}
 .contact-icon{cursor:pointer;font-size:16px}
 .contact-icon.green{color:green}
 .contact-icon.grey{color:#777}
 button.edit{background:var(--accent);color:white;padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px}
-/* Panel derecho (formulario) */
 .right-panel{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(200,200,200,0.9);box-shadow:0 10px 26px rgba(0,0,0,0.18)}
 .banner{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#fff;border:1px solid rgba(207,163,169,0.4);padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(203,164,169,0.15);display:none;z-index:999;font-size:13px;max-width:80%}
 .small{font-size:12px;color:var(--muted)}
 #counter{font-size:12px;color:var(--muted)}
 #monthlySummary{font-size:12px;color:var(--muted);margin-top:4px}
-/* === Columnas fijas: selección, nombre y teléfono === */
 th:nth-child(1), td:nth-child(1){position:sticky;left:0;z-index:4;background:#fff5f8;}
 th:nth-child(2), td:nth-child(2){position:sticky;left:38px;z-index:3;background:#fff;}
-th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background:#e6f0ff;} /* azul suave */
-/* Ajustes responsive */
+th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background:#e6f0ff;}
+#driveStatus.ok{color:#157347}
+#driveStatus.err{color:#b02a37}
 @media (max-width:980px){.layout{flex-direction:column}.right{order:2;max-width:100%;min-width:100%}}
 </style>
 </head>
 <body>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <div class="container">
   <div class="app">
     <div class="header">
@@ -75,10 +72,10 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
             <select id="filterContact"><option value="">Todos</option><option value="true">Contactado</option><option value="false">No contactado</option></select>
             <select id="order"><option value="asc">Antiguos primero</option><option value="desc">Recientes primero</option></select>
             <label><input type="checkbox" id="selectAll"> Seleccionar todo</label>
-            <button id="sendSelected" class="ghost">📲 Enviar WhatsApp seleccionados</button>
-            <button id="deleteSelected" class="ghost">🗑️ Borrar seleccionados</button>
-            <button id="downloadCSV" class="ghost">📤 Exportar backup</button>
-            <button id="importBtn" class="ghost">📥 Importar backup</button>
+            <button id="sendSelected" class="ghost">📲 Enviar WhatsApp</button>
+            <button id="deleteSelected" class="ghost">🗑️ Borrar</button>
+            <button id="downloadCSV" class="ghost">📤 Exportar</button>
+            <button id="importBtn" class="ghost">📥 Importar</button>
             <button id="btnDrive" class="ghost">Conectar Drive</button>
           </div>
           <div class="row" style="justify-content:space-between">
@@ -129,7 +126,7 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
 <div id="bottomBanner" class="banner"></div>
 
 <script>
-// ---- Password ----
+// ---- Password fija ----
 (function(){
   const PASSWORD='clinica2025';
   const p=prompt('Introduce la contraseña para acceder:');
@@ -146,10 +143,14 @@ window.addEventListener('DOMContentLoaded',()=>{
   const SCOPES='https://www.googleapis.com/auth/drive.file';
   const DRIVE_FILE_NAME='pacientes_clinica.json';
   const LS_KEY='clinica_pacientes_v9_9_1_full';
+  const TOKEN_KEY='clinica_drive_token_v1';
+  const FILEID_KEY='clinica_drive_fileid_v1';
+  const LASTSYNC_KEY='clinica_last_sync_v1';
 
   // ---- State ----
   let patients = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-  let accessToken=null, tokenClient=null, fileId=null, currentIndex=null;
+  let accessToken=null, tokenClient=null, fileId=localStorage.getItem(FILEID_KEY)||null, currentIndex=null;
+  let reauthInProgress=false;
 
   // ---- Helpers ----
   const $ = s=>document.querySelector(s);
@@ -157,6 +158,14 @@ window.addEventListener('DOMContentLoaded',()=>{
   function showBanner(m, t=3500){const b=$('#bottomBanner');b.textContent=m;b.style.display='block';setTimeout(()=>b.style.display='none',t);}
   function sanitizePhone(raw){ if(!raw) return ''; let d=String(raw).replace(/[^0-9+]/g,''); if(d.startsWith('00')) d='+'+d.slice(2); let digits=d.replace(/\D/g,''); if(digits.length===9) digits='34'+digits; return digits; }
   function csvEscape(s){ return String(s??'').replace(/"/g,'""'); }
+  const fmtDateTime = (d)=> new Date(d).toLocaleString('es-ES',{hour12:false});
+
+  function setDriveStatus(ok, msg){
+    const el = $('#driveStatus');
+    el.classList.remove('ok','err');
+    if(ok){ el.classList.add('ok'); el.textContent = '✅ ' + msg; }
+    else { el.classList.add('err'); el.textContent = '❌ ' + msg; }
+  }
 
   // ---- Dynamic height for table ----
   function fitTableHeight(){
@@ -215,7 +224,7 @@ window.addEventListener('DOMContentLoaded',()=>{
         <td>${p.notes||''}</td>
         <td style="text-align:center"><span class="contact-icon ${p.sent?'green':'grey'}" data-id="${idx}">${p.sent?'✔️':'❌'}</span></td>
         <td><button class="edit" data-id="${idx}">Editar</button></td>
-        <td>${p.createdAt? new Date(p.createdAt).toLocaleString() : ''}</td>
+        <td>${p.createdAt? new Date(p.createdAt).toLocaleString('es-ES',{hour12:false}) : ''}</td>
       `;
       tb.appendChild(tr);
     });
@@ -262,7 +271,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     else { patients.push(obj); }
     $('#name').value=$('#phone').value=$('#treatment').value=$('#notes').value=''; $('#month').value='';
     $('#selectAll').checked=false;
-    showBanner('✅ Guardado');
+    showBanner('✅ Paciente guardado');
     saveLocal(true);
   };
 
@@ -329,22 +338,19 @@ window.addEventListener('DOMContentLoaded',()=>{
     saveLocal(true);
   };
 
+  // CSV robusto
   function parseCSV(text){
     const rows=[]; let cur=[], curVal='', inQuotes=false;
     for(let i=0;i<text.length;i++){
       const ch=text[i], next=text[i+1];
-      if(inQuotes){
-        if(ch==='"' && next==='"'){ curVal+='"'; i++; }
-        else if(ch==='"'){ inQuotes=false; }
-        else { curVal+=ch; }
-      }else{
-        if(ch===','){ cur.push(curVal); curVal=''; }
-        else if(ch==='\n'){ cur.push(curVal); rows.push(cur); cur=[]; curVal=''; }
-        else if(ch==='"'){ inQuotes=true; }
-        else if(ch!=='\r'){ curVal+=ch; }
+      if(inQuotes){ if(ch==='"'&&next==='"'){curVal+='"';i++;} else if(ch==='"'){inQuotes=false;} else curVal+=ch; }
+      else{ if(ch===','){cur.push(curVal);curVal='';}
+        else if(ch==='\n'){cur.push(curVal);rows.push(cur);cur=[];curVal='';}
+        else if(ch==='"'){inQuotes=true;}
+        else if(ch!=='\r'){curVal+=ch;}
       }
     }
-    if(curVal.length>0 || cur.length>0){ cur.push(curVal); rows.push(cur); }
+    if(curVal.length>0||cur.length>0){cur.push(curVal);rows.push(cur);}
     return rows;
   }
 
@@ -369,86 +375,129 @@ window.addEventListener('DOMContentLoaded',()=>{
     e.target.value='';
   });
 
-  // ---- Google Drive integration ----
+  // ---- Google Drive (token persistente) ----
+  function storeToken(token){
+    try{ localStorage.setItem(TOKEN_KEY, JSON.stringify(token)); }catch(_){}
+  }
+  function loadToken(){
+    try{ const t = JSON.parse(localStorage.getItem(TOKEN_KEY)||'null'); return t && t.access_token ? t : null; }catch(_){ return null; }
+  }
+  function clearToken(){
+    localStorage.removeItem(TOKEN_KEY);
+    accessToken=null;
+    gapi.client.setToken(null);
+  }
+  function setLastSyncNow(){
+    const ts = new Date().toISOString();
+    localStorage.setItem(LASTSYNC_KEY, ts);
+    setDriveStatus(true, `Conectado a Google Drive · Última sync: ${fmtDateTime(ts)}`);
+  }
+  function setSyncError(msg='Error en la sincronización (revisa conexión)'){
+    setDriveStatus(false, msg);
+  }
+  async function applyStoredTokenIfAny(){
+    const saved = loadToken();
+    if(saved){
+      accessToken = saved.access_token;
+      gapi.client.setToken({access_token: accessToken});
+      setDriveStatus(true, 'Conectado a Google Drive (token guardado)');
+      if(!fileId){
+        try{ await loadOrCreateFile(); }catch(_){}
+      }
+    }
+  }
+
   gapi.load('client', async ()=>{
     await gapi.client.init({ discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+    // Intentar usar token guardado sin pedir login
+    await applyStoredTokenIfAny();
+    const last = localStorage.getItem(LASTSYNC_KEY);
+    if(last){ setDriveStatus(true, `Conectado a Google Drive · Última sync: ${fmtDateTime(last)}`); }
   });
 
   $('#btnDrive').onclick = ()=>{
+    if(reauthInProgress) return;
     tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
+      client_id: CLIENT_ID, scope: SCOPES,
       callback: async (r)=>{
+        reauthInProgress=false;
         if(r && r.access_token){
           accessToken = r.access_token;
-          $('#driveStatus').textContent = '✅ Conectado a Google Drive';
+          gapi.client.setToken({access_token: accessToken});
+          storeToken({access_token: accessToken, obtained_at: Date.now()});
+          setDriveStatus(true, 'Conectado a Google Drive');
           await loadOrCreateFile();
           await syncToDrive();
         }else{
+          setSyncError('Error de autenticación con Google');
           showBanner('Error de autenticación con Google');
         }
       }
     });
-    tokenClient.requestAccessToken({prompt:''});
+    reauthInProgress=true;
+    tokenClient.requestAccessToken({prompt:''}); // no fuerza diálogos si ya está concedido
   };
 
-  async function ensureToken(){ try{ tokenClient && tokenClient.requestAccessToken({prompt:''}); }catch(e){} }
+  async function guardedRequest(reqFn){
+    try{
+      return await reqFn();
+    }catch(err){
+      const status = (err && err.status) || (err?.result?.error?.code);
+      if(status===401 || status===403){
+        setSyncError('Token caducado. Pulsa "Conectar Drive" para reautenticar.');
+        clearToken();
+        throw err;
+      }
+      setSyncError('Error en la sincronización (revisa conexión)');
+      throw err;
+    }
+  }
 
   async function loadOrCreateFile(){
-    try{
-      const res = await gapi.client.drive.files.list({ q:`name='${DRIVE_FILE_NAME}' and trashed=false`, fields:'files(id,name)' });
-      if(res.result.files && res.result.files.length){
-        fileId = res.result.files[0].id;
-        await loadFileFromDrive();
-      }else{
-        await createFileOnDrive();
-      }
-    }catch(err){ console.error('list',err); showBanner('Error listando en Drive'); }
+    const res = await guardedRequest(()=> gapi.client.drive.files.list({ q:`name='${DRIVE_FILE_NAME}' and trashed=false`, fields:'files(id,name)' }));
+    if(res.result.files && res.result.files.length){
+      fileId = res.result.files[0].id;
+      localStorage.setItem(FILEID_KEY, fileId);
+      await loadFileFromDrive();
+    }else{
+      await createFileOnDrive();
+    }
   }
 
   async function createFileOnDrive(){
-    try{
-      await ensureToken();
-      const body = JSON.stringify({ pacientes: patients });
-      const r = await gapi.client.request({
-        path:'/upload/drive/v3/files?uploadType=media',
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body
-      });
-      fileId = r.result && r.result.id;
-      showBanner('✅ Archivo creado en Drive');
-    }catch(err){ console.error('create',err); showBanner('Error creando archivo en Drive'); }
+    const body = JSON.stringify({ pacientes: patients });
+    const r = await guardedRequest(()=> gapi.client.request({
+      path:'/upload/drive/v3/files?uploadType=media', method:'POST',
+      headers:{'Content-Type':'application/json'}, body
+    }));
+    fileId = r.result && r.result.id;
+    localStorage.setItem(FILEID_KEY, fileId||'');
+    setLastSyncNow();
+    showBanner('✅ Archivo creado en Drive');
   }
 
   async function loadFileFromDrive(){
-    try{
-      await ensureToken();
-      const r = await gapi.client.drive.files.get({ fileId, alt:'media' });
-      const data = (typeof r.body==='string') ? JSON.parse(r.body) : (r.result||{});
-      if(Array.isArray(data.pacientes)){
-        patients = data.pacientes;
-        saveLocal(false);
-        render();
-        showBanner('📂 Datos cargados de Drive');
-      }else{
-        showBanner('Archivo en Drive vacío o incompatible');
-      }
-    }catch(err){ console.error('load',err); showBanner('Error cargando archivo de Drive'); }
+    const r = await guardedRequest(()=> gapi.client.drive.files.get({ fileId, alt:'media' }));
+    const data = (typeof r.body==='string') ? JSON.parse(r.body) : (r.result||{});
+    if(Array.isArray(data.pacientes)){
+      patients = data.pacientes;
+      saveLocal(false);
+      render();
+      setLastSyncNow();
+      showBanner('📂 Datos cargados de Drive');
+    }else{
+      showBanner('Archivo en Drive vacío o incompatible');
+    }
   }
 
   async function syncToDrive(){
-    if(!fileId) return;
-    try{
-      await ensureToken();
-      const body = JSON.stringify({ pacientes: patients });
-      await gapi.client.request({
-        path:`/upload/drive/v3/files/${fileId}?uploadType=media`,
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body
-      });
-    }catch(err){ console.error('sync',err); showBanner('Error sincronizando con Drive'); }
+    if(!fileId || !accessToken) return;
+    const body = JSON.stringify({ pacientes: patients });
+    await guardedRequest(()=> gapi.client.request({
+      path:`/upload/drive/v3/files/${fileId}?uploadType=media`,
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body
+    }));
+    setLastSyncNow();
   }
 
   // ---- Events ----
