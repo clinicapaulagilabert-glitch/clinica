@@ -25,12 +25,14 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe 
 input[type=text],select,textarea{padding:8px;border-radius:10px;border:1px solid rgba(150,120,125,0.12);background:rgba(255,255,255,0.95)}
 button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
 button.ghost{background:transparent;border:1px solid rgba(150,120,125,0.12);color:var(--text);padding:6px 10px}
+button:disabled{opacity:.5;cursor:not-allowed}
 .table-wrap{border-radius:10px;border:1px solid rgba(207,163,169,0.06);background:linear-gradient(#fff,#fffafc);overflow:auto}
 table{min-width:1120px;width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{padding:8px 6px;text-align:left;font-size:12px;border-bottom:1px dashed rgba(150,120,125,0.06);vertical-align:middle;word-break:break-word}
 th{color:var(--muted);font-weight:700;background:#fff5f8;position:sticky;top:0;z-index:5}
 .row-green{background:var(--green)}
 .row-grey{background:var(--grey)}
+.row-error{background:#fdecea}
 contact-icon{cursor:pointer;font-size:16px}
 .contact-icon{cursor:pointer;font-size:16px}
 .contact-icon.green{color:green}
@@ -46,6 +48,12 @@ th:nth-child(2), td:nth-child(2){position:sticky;left:38px;z-index:3;background:
 th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background:#e6f0ff;}
 #driveStatus.ok{color:#157347}
 #driveStatus.err{color:#b02a37}
+.modal-bg{position:fixed;inset:0;background:rgba(59,43,45,0.45);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#fff;border-radius:12px;padding:18px;max-width:520px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:86vh;overflow:auto}
+.modal h3{margin:0 0 10px}
+.modal label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.modal input{width:100%}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 @media (max-width:980px){.layout{flex-direction:column}.right{order:2;max-width:100%;min-width:100%}}
 </style>
 </head>
@@ -69,14 +77,17 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
           <div class="row">
             <input id="search" type="text" placeholder="Buscar por nombre, teléfono, tratamiento o nota" style="flex:1;min-width:180px" />
             <select id="filterMonth"><option value="">Todos los meses</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+            <select id="filterYear"><option value="">Todos los años</option></select>
             <select id="filterContact"><option value="">Todos</option><option value="true">Contactado</option><option value="false">No contactado</option></select>
             <select id="order"><option value="asc">Antiguos primero</option><option value="desc">Recientes primero</option></select>
             <label><input type="checkbox" id="selectAll"> Seleccionar todo</label>
-            <button id="sendSelected" class="ghost">📲 Enviar WhatsApp</button>
+            <button id="sendBatch">📲 Enviar tanda por WhatsApp</button>
+            <button id="sendSelected" class="ghost" title="Método antiguo: abre una pestaña de WhatsApp por paciente">📲 Abrir uno a uno</button>
             <button id="deleteSelected" class="ghost">🗑️ Borrar</button>
             <button id="downloadCSV" class="ghost">📤 Exportar</button>
             <button id="importBtn" class="ghost">📥 Importar</button>
             <button id="btnDrive" class="ghost">Conectar Drive</button>
+            <button id="btnConfig" class="ghost" title="Configurar el envío por Supernova">⚙️</button>
           </div>
           <div class="row" style="justify-content:space-between">
             <div id="driveStatus" class="small">❌ No conectado</div>
@@ -109,13 +120,17 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
             <input id="name" type="text" placeholder="Nombre" />
             <input id="phone" type="text" placeholder="Teléfono (+346...)" />
             <input id="treatment" type="text" placeholder="Tratamiento" />
-            <select id="month" style="width:100%"><option value="">Mes</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+            <div style="display:flex;gap:8px">
+              <select id="month" style="flex:1"><option value="">Mes</option><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+              <select id="year" style="width:100px"><option value="">Año</option></select>
+            </div>
             <textarea id="notes" rows="4" placeholder="Notas..."></textarea>
             <button id="save" style="width:100%">Guardar</button>
           </div>
           <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.12)" />
           <div class="small">Plantilla WhatsApp (editable):</div>
           <textarea id="template" rows="5" style="width:100%;margin-top:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana a mediodía o la tarde. Si no has recibido respuesta en un plazo de 2 ó 3 días laborables, por favor vuelve a escribirnos. Agradecemos tu comprensión. Gracias, un saludo.</textarea>
+          <div class="small" style="margin-top:6px">La plantilla solo se usa en «Abrir uno a uno». El envío por tanda usa la plantilla aprobada por Meta.</div>
         </div>
       </div>
     </div>
@@ -124,6 +139,21 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
 
 <input id="fileInput" type="file" accept=".csv" style="display:none" />
 <div id="bottomBanner" class="banner"></div>
+
+<div class="modal-bg" id="configModal">
+  <div class="modal">
+    <h3>⚙️ Envío por Supernova</h3>
+    <div class="small">Estos datos se guardan solo en este ordenador. No se publican en internet.</div>
+    <label for="cfgUrl">Dirección de envío (la facilita el equipo técnico)</label>
+    <input id="cfgUrl" type="text" placeholder="https://..." />
+    <label for="cfgKey">Clave de seguridad</label>
+    <input id="cfgKey" type="text" placeholder="..." />
+    <div class="actions">
+      <button class="ghost" id="cfgCancel">Cancelar</button>
+      <button id="cfgSave">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ---- Password fija ----
@@ -143,14 +173,19 @@ window.addEventListener('DOMContentLoaded',()=>{
   const SCOPES='https://www.googleapis.com/auth/drive.file';
   const DRIVE_FILE_NAME='pacientes_clinica.json';
   const LS_KEY='clinica_pacientes_v9_9_1_full';
+  const LS_BACKUP_KEY='clinica_pacientes_backup_premigracion';
   const TOKEN_KEY='clinica_drive_token_v1';
   const FILEID_KEY='clinica_drive_fileid_v1';
   const LASTSYNC_KEY='clinica_last_sync_v1';
+  const CFG_KEY='clinica_envio_cfg_v1';
+  const MAX_TANDA=40;
 
   // ---- State ----
   let patients = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-  let accessToken=null, tokenClient=null, fileId=localStorage.getItem(FILEID_KEY)||null, currentIndex=null;
-  let reauthInProgress=false;
+  let accessToken=null, tokenClient=null, fileId=localStorage.getItem(FILEID_KEY)||null, currentId=null;
+  let reauthInProgress=false, sending=false;
+  let pendingTokenResolve=null;     // renovación de permiso de Google en curso
+  let pendienteDeSync=false;        // hay cambios locales sin subir a Drive
 
   // ---- Helpers ----
   const $ = s=>document.querySelector(s);
@@ -159,6 +194,63 @@ window.addEventListener('DOMContentLoaded',()=>{
   function sanitizePhone(raw){ if(!raw) return ''; let d=String(raw).replace(/[^0-9+]/g,''); if(d.startsWith('00')) d='+'+d.slice(2); let digits=d.replace(/\D/g,''); if(digits.length===9) digits='34'+digits; return digits; }
   function csvEscape(s){ return String(s??'').replace(/"/g,'""'); }
   const fmtDateTime = (d)=> new Date(d).toLocaleString('es-ES',{hour12:false});
+
+  // Escapa el texto del paciente antes de pintarlo en la tabla.
+  // Sin esto, un nombre o una nota con etiquetas HTML se ejecuta en la página.
+  function esc(s){
+    return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function newId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  }
+  const byId = id => patients.find(p=>p.id===id);
+  const nowISO = ()=> new Date().toISOString();
+
+  // Un teléfono vale si, ya normalizado, tiene entre 11 y 15 dígitos (E.164).
+  // Un español bien puesto son 11: 34 + los 9 del número.
+  function telefonoValido(tel){
+    const d = String(tel||'').replace(/\D/g,'');
+    return d.length>=11 && d.length<=15;
+  }
+
+  // ---- Migración: da id y updatedAt a los pacientes que ya estaban guardados ----
+  // No inventa el año de los antiguos: se quedan sin año y se muestran igual que hasta ahora.
+  (function migrate(){
+    const original = localStorage.getItem(LS_KEY) || '[]';
+    let changed=false, tlfArreglados=0;
+    patients.forEach(p=>{
+      if(!p.id){ p.id=newId(); changed=true; }
+      if(!p.updatedAt){ p.updatedAt = p.createdAt || nowISO(); changed=true; }
+      // Los teléfonos guardados antes de tener el prefijo (9 dígitos) rompen el envío.
+      const norm = sanitizePhone(p.phone);
+      if(norm && norm!==p.phone){ p.phone=norm; tlfArreglados++; changed=true; }
+    });
+    if(changed){
+      // Red de seguridad: guarda una copia INTACTA de cómo estaba la lista antes
+      // de tocarla, por si algo saliera mal. Solo se escribe la primera vez.
+      try{ if(!localStorage.getItem(LS_BACKUP_KEY)) localStorage.setItem(LS_BACKUP_KEY, original); }catch(_){}
+      localStorage.setItem(LS_KEY, JSON.stringify(patients));
+      console.log('Migrados', patients.length, 'pacientes · teléfonos corregidos:', tlfArreglados);
+      if(tlfArreglados) setTimeout(()=> showBanner(`🔧 Se ha añadido el prefijo del país a ${tlfArreglados} teléfonos`, 6000), 800);
+    }
+  })();
+
+  // ---- Selector de años ----
+  (function fillYears(){
+    const y = new Date().getFullYear();
+    const years = new Set([y-1, y, y+1]);
+    patients.forEach(p=>{ if(p.year) years.add(Number(p.year)); });
+    const sorted = [...years].sort();
+    sorted.forEach(v=>{
+      $('#year').insertAdjacentHTML('beforeend', `<option value="${v}">${v}</option>`);
+      $('#filterYear').insertAdjacentHTML('beforeend', `<option value="${v}">${v}</option>`);
+    });
+    $('#year').value = String(y);
+  })();
+
+  function mesConAnio(p){ return p.month ? (p.year ? `${p.month} ${p.year}` : p.month) : ''; }
 
   function setDriveStatus(ok, msg){
     const el = $('#driveStatus');
@@ -182,11 +274,13 @@ window.addEventListener('DOMContentLoaded',()=>{
   function computeFiltered(){
     const q=$('#search').value.toLowerCase();
     const mf=$('#filterMonth').value;
+    const yf=$('#filterYear').value;
     const cf=$('#filterContact').value;
     const ord=$('#order').value;
     let list = patients.filter(p=>{
       if(q && !( (p.name||'').toLowerCase().includes(q) || (p.phone||'').toLowerCase().includes(q) || (p.treatment||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q))) return false;
       if(mf && p.month!==mf) return false;
+      if(yf && String(p.year||'')!==yf) return false;
       if(cf && String(!!p.sent)!==cf) return false;
       return true;
     });
@@ -198,7 +292,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!list.length){ $('#monthlySummary').textContent=''; return; }
     const stats = {};
     list.forEach(p=>{
-      const m = p.month||'Sin mes';
+      const m = mesConAnio(p) || 'Sin mes';
       if(!stats[m]) stats[m]={total:0,c:0};
       stats[m].total++;
       if(p.sent) stats[m].c++;
@@ -212,94 +306,239 @@ window.addEventListener('DOMContentLoaded',()=>{
     const tb = $('#patientsTable tbody'); tb.innerHTML='';
     const filtered = computeFiltered();
     filtered.forEach(p=>{
-      const idx = patients.indexOf(p);
       const tr = document.createElement('tr');
-      tr.className = p.sent ? 'row-green' : 'row-grey';
+      tr.className = p.sendError ? 'row-error' : (p.sent ? 'row-green' : 'row-grey');
+      // Estado de contacto: con envío confirmado se muestra la fecha real al pasar el ratón
+      let icono='❌', clase='grey', titulo='No contactado';
+      if(p.sendError){ icono='⚠️'; clase='grey'; titulo='Error en el último envío: '+p.sendError; }
+      else if(p.sent){
+        icono='✔️'; clase='green';
+        titulo = p.sentAt ? ('Enviado por Supernova el '+fmtDateTime(p.sentAt)) : 'Marcado como contactado a mano';
+      }
       tr.innerHTML = `
-        <td><input type="checkbox" class="sel" data-id="${idx}"></td>
-        <td>${p.name||''}</td>
-        <td>${p.phone||''}</td>
-        <td>${p.treatment||''}</td>
-        <td>${p.month||''}</td>
-        <td>${p.notes||''}</td>
-        <td style="text-align:center"><span class="contact-icon ${p.sent?'green':'grey'}" data-id="${idx}">${p.sent?'✔️':'❌'}</span></td>
-        <td><button class="edit" data-id="${idx}">Editar</button></td>
+        <td><input type="checkbox" class="sel" data-id="${esc(p.id)}"></td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.phone)}</td>
+        <td>${esc(p.treatment)}</td>
+        <td>${esc(mesConAnio(p))}</td>
+        <td>${esc(p.notes)}</td>
+        <td style="text-align:center"><span class="contact-icon ${clase}" data-id="${esc(p.id)}" title="${esc(titulo)}">${icono}</span></td>
+        <td><button class="edit" data-id="${esc(p.id)}">Editar</button></td>
         <td>${p.createdAt? new Date(p.createdAt).toLocaleString('es-ES',{hour12:false}) : ''}</td>
       `;
       tb.appendChild(tr);
     });
-    $$('.edit').forEach(b=> b.onclick = e=> startEdit(Number(e.currentTarget.dataset.id)));
-    $$('.contact-icon').forEach(i=> i.onclick = e=> toggleContact(Number(e.currentTarget.dataset.id)));
+    $$('.edit').forEach(b=> b.onclick = e=> startEdit(e.currentTarget.dataset.id));
+    $$('.contact-icon').forEach(i=> i.onclick = e=> toggleContact(e.currentTarget.dataset.id));
+    $$('#patientsTable tbody .sel').forEach(cb=> cb.onchange = updateCounter);
 
-    const selected = $$('#patientsTable tbody .sel:checked').length;
-    $('#counter').textContent = `Mostrando ${filtered.length} de ${patients.length} · Seleccionados ${selected}`;
+    updateCounter();
     updateMonthlySummary(filtered);
     fitTableHeight();
+  }
+
+  function updateCounter(){
+    const filtered = computeFiltered();
+    const selected = $$('#patientsTable tbody .sel:checked').length;
+    let txt = `Mostrando ${filtered.length} de ${patients.length} · Seleccionados ${selected}`;
+    if(selected > MAX_TANDA) txt += ` ⚠️ más de ${MAX_TANDA}`;
+    $('#counter').textContent = txt;
   }
 
   // ---- Persistence ----
   function saveLocal(sync=true){
     localStorage.setItem(LS_KEY, JSON.stringify(patients));
     render();
-    if(sync && accessToken && fileId){ syncToDrive(); }
+    // Lo local ya está guardado pase lo que pase. Si Drive falla, se marca
+    // como pendiente y se reintenta solo en cuanto se recupere la conexión.
+    if(sync && accessToken && fileId){ syncToDrive().catch(()=>{ pendienteDeSync=true; }); }
+    else if(sync){ pendienteDeSync = true; }
   }
 
   // ---- CRUD ----
-  function startEdit(i){
-    const p = patients[i];
-    currentIndex = i;
+  function startEdit(id){
+    const p = byId(id);
+    if(!p) return;
+    currentId = id;
     $('#name').value = p.name || '';
     $('#phone').value = p.phone || '';
     $('#treatment').value = p.treatment || '';
     $('#month').value = p.month || '';
+    $('#year').value = p.year ? String(p.year) : '';
     $('#notes').value = p.notes || '';
   }
   $('#save').onclick = ()=>{
     const name = $('#name').value.trim();
     const phone = sanitizePhone($('#phone').value.trim());
     if(!name || !phone){ alert('Nombre y teléfono son obligatorios'); return; }
+    const prev = currentId ? byId(currentId) : null;
     const obj = {
+      id: prev ? prev.id : newId(),
       name,
       phone,
       treatment: $('#treatment').value.trim(),
       month: $('#month').value,
+      year: $('#year').value ? Number($('#year').value) : '',
       notes: $('#notes').value.trim(),
-      sent: (currentIndex!=null ? !!patients[currentIndex].sent : false),
-      createdAt: (currentIndex!=null && patients[currentIndex].createdAt) ? patients[currentIndex].createdAt : new Date().toISOString()
+      sent: prev ? !!prev.sent : false,
+      sentAt: prev ? (prev.sentAt||'') : '',
+      contactId: prev ? (prev.contactId||'') : '',
+      sendError: prev ? (prev.sendError||'') : '',
+      createdAt: (prev && prev.createdAt) ? prev.createdAt : nowISO(),
+      updatedAt: nowISO()
     };
-    if(currentIndex!=null){ patients[currentIndex] = obj; currentIndex=null; }
+    if(prev){ patients[patients.indexOf(prev)] = obj; currentId=null; }
     else { patients.push(obj); }
     $('#name').value=$('#phone').value=$('#treatment').value=$('#notes').value=''; $('#month').value='';
+    $('#year').value = String(new Date().getFullYear());
     $('#selectAll').checked=false;
     showBanner('✅ Paciente guardado');
     saveLocal(true);
   };
 
-  function toggleContact(i){
-    patients[i].sent = !patients[i].sent;
+  function toggleContact(id){
+    const p = byId(id); if(!p) return;
+    p.sent = !p.sent;
+    if(!p.sent){ p.sentAt=''; p.contactId=''; }
+    p.sendError='';
+    p.updatedAt = nowISO();
     saveLocal(true);
   }
 
   // ---- Selection ----
   $('#selectAll').onchange = e=>{
     $$('#patientsTable tbody .sel').forEach(cb=> cb.checked = e.target.checked);
-    const selected = $$('#patientsTable tbody .sel:checked').length;
-    const filtered = computeFiltered();
-    $('#counter').textContent = `Mostrando ${filtered.length} de ${patients.length} · Seleccionados ${selected}`;
+    updateCounter();
   };
 
   function getSelectedIds(){
-    return $$('#patientsTable tbody .sel:checked').map(cb=> Number(cb.dataset.id));
+    return $$('#patientsTable tbody .sel:checked').map(cb=> cb.dataset.id);
   }
 
-  // ---- WhatsApp ----
+  // ---- Configuración del envío (se guarda solo en este navegador) ----
+  function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'null'); }catch(_){ return null; } }
+  $('#btnConfig').onclick = ()=>{
+    const c = loadCfg()||{};
+    $('#cfgUrl').value = c.url||'';
+    $('#cfgKey').value = c.key||'';
+    $('#configModal').style.display='flex';
+  };
+  $('#cfgCancel').onclick = ()=> $('#configModal').style.display='none';
+  $('#cfgSave').onclick = ()=>{
+    const url=$('#cfgUrl').value.trim(), key=$('#cfgKey').value.trim();
+    if(url && !/^https:\/\//i.test(url)){ alert('La dirección debe empezar por https://'); return; }
+    localStorage.setItem(CFG_KEY, JSON.stringify({url,key}));
+    $('#configModal').style.display='none';
+    showBanner('✅ Configuración guardada');
+  };
+
+  // ---- Envío por tanda (Supernova) ----
+  $('#sendBatch').onclick = async ()=>{
+    if(sending) return;
+    const cfg = loadCfg();
+    if(!cfg || !cfg.url){
+      alert('Antes de enviar hay que configurar el envío.\n\nPulsa el botón ⚙️ y pega la dirección y la clave que te dio el equipo técnico.');
+      return;
+    }
+    const ids = getSelectedIds();
+    if(ids.length===0){ showBanner('⚠️ No hay seleccionados'); return; }
+    if(ids.length > MAX_TANDA && !confirm(`Has seleccionado ${ids.length} pacientes.\n\nSe recomienda no pasar de ${MAX_TANDA} por tanda: si responden todos a la vez, no da tiempo a atenderlos.\n\n¿Enviar de todas formas?`)) return;
+
+    let seleccionados = ids.map(byId).filter(Boolean);
+
+    // Un teléfono mal formado se convierte en un envío perdido: mejor pararlo aquí.
+    const malos = seleccionados.filter(p=> !telefonoValido(p.phone));
+    if(malos.length){
+      const lista = malos.slice(0,10).map(p=>`· ${p.name} — ${p.phone||'(sin teléfono)'}`).join('\n');
+      const resto = malos.length>10 ? `\n...y ${malos.length-10} más` : '';
+      if(!confirm(`${malos.length} pacientes tienen el teléfono incompleto y no se les puede escribir:\n\n${lista}${resto}\n\n¿Enviar al resto (${seleccionados.length-malos.length}) y revisar estos después?`)) return;
+      seleccionados = seleccionados.filter(p=> telefonoValido(p.phone));
+      if(!seleccionados.length){ showBanner('⚠️ No queda ningún paciente con teléfono válido'); return; }
+    }
+
+    const yaEnviados = seleccionados.filter(p=>p.sent).length;
+    let aviso = `Se van a enviar ${seleccionados.length} mensajes por WhatsApp.`;
+    if(yaEnviados) aviso += `\n\n⚠️ ${yaEnviados} de ellos ya figuran como contactados. Se les volvería a escribir.`;
+    if(!confirm(aviso+'\n\n¿Continuar?')) return;
+
+    sending = true;
+    $('#sendBatch').disabled = true;
+    $('#sendBatch').textContent = '⏳ Enviando...';
+    showBanner('⏳ Enviando la tanda. Puede tardar un par de minutos, no cierres la página.', 12000);
+
+    const payload = {
+      clave: cfg.key||'',
+      enviadoDesde: 'app-lista-espera',
+      fecha: nowISO(),
+      pacientes: seleccionados.map(p=>({
+        id: p.id,
+        nombre: p.name||'',
+        telefono: '+'+(p.phone||''),
+        tratamiento: p.treatment||'',
+        mes: p.month||'',
+        anio: p.year||'',
+        notas: p.notes||''
+      }))
+    };
+
+    try{
+      const res = await fetch(cfg.url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('El servidor respondió '+res.status);
+      const data = await res.json();
+      const resultados = Array.isArray(data) ? data : (data.resultados||data.results||[]);
+      if(!resultados.length) throw new Error('El servidor no devolvió el resultado de los envíos');
+
+      let ok=0, ko=0;
+      const fallos=[];
+      resultados.forEach(r=>{
+        const p = byId(r.id);
+        if(!p) return;
+        if(r.estado==='enviado' || r.status==='sent'){
+          p.sent = true;
+          p.sentAt = r.fecha || nowISO();
+          p.contactId = r.contact_id || r.contactId || '';
+          p.sendError = '';
+          ok++;
+        }else{
+          p.sendError = r.motivo || r.error || 'No se pudo enviar';
+          fallos.push(`${p.name} (${p.phone}): ${p.sendError}`);
+          ko++;
+        }
+        p.updatedAt = nowISO();
+      });
+      saveLocal(true);
+      $('#selectAll').checked=false;
+
+      if(ko===0){ showBanner(`✅ Enviados ${ok} mensajes correctamente`, 6000); }
+      else{ alert(`Enviados: ${ok}\nCon error: ${ko}\n\n${fallos.join('\n')}\n\nLos que fallaron se quedan marcados en rojo para reintentarlos.`); }
+    }catch(err){
+      console.error(err);
+      const msg = String(err && err.message || err);
+      if(/Failed to fetch|NetworkError/i.test(msg)){
+        alert('No se pudo contactar con el servidor de envío.\n\nAvisa al equipo técnico: puede ser un problema de permisos del servidor (CORS) o que la dirección sea incorrecta.\n\nNo se ha enviado ningún mensaje.');
+      }else{
+        alert('No se pudo completar el envío.\n\n'+msg+'\n\nRevisa en Supernova si llegó a salir alguno antes de reintentar.');
+      }
+    }finally{
+      sending = false;
+      $('#sendBatch').disabled = false;
+      $('#sendBatch').textContent = '📲 Enviar tanda por WhatsApp';
+    }
+  };
+
+  // ---- WhatsApp uno a uno (método antiguo, se mantiene como respaldo) ----
   $('#sendSelected').onclick = ()=>{
     const ids = getSelectedIds();
     if(ids.length===0){ showBanner('⚠️ No hay seleccionados'); return; }
+    if(ids.length>5 && !confirm(`Esto abre ${ids.length} pestañas de WhatsApp, una por paciente. El navegador bloqueará casi todas.\n\nPara tandas grandes usa «Enviar tanda por WhatsApp».\n\n¿Continuar igualmente?`)) return;
     const tpl = $('#template').value;
     let blocked=false;
-    ids.forEach(i=>{
-      const p = patients[i];
+    ids.forEach(id=>{
+      const p = byId(id); if(!p) return;
       const msg = tpl
         .replace(/{{\s*nombre\s*}}/gi, p.name||'')
         .replace(/{{\s*mes\s*}}/gi, p.month||'')
@@ -308,17 +547,19 @@ window.addEventListener('DOMContentLoaded',()=>{
       const win = window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
       if(!win) blocked=true;
       p.sent = true;
+      p.sentAt = '';           // abierto a mano: no hay confirmación de entrega
+      p.updatedAt = nowISO();
     });
     if(blocked) showBanner('⚠️ Algunas ventanas fueron bloqueadas. Permite pop-ups.');
     saveLocal(true);
-    showBanner('📲 WhatsApp enviado a seleccionados');
+    showBanner('📲 WhatsApp abierto para los seleccionados');
   };
 
   // ---- Export/Import CSV ----
   function exportCSVSnapshot(prefix='backup_pacientes'){
-    let csv='Nombre,Telefono,Tratamiento,Mes,Notas,Contactado,Fecha\n';
+    let csv='Nombre,Telefono,Tratamiento,Mes,Notas,Contactado,Fecha,Anio,Id\n';
     patients.forEach(p=>{
-      csv += `"${csvEscape(p.name)}","${p.phone}","${csvEscape(p.treatment)}","${csvEscape(p.month)}","${csvEscape(p.notes)}","${!!p.sent}","${p.createdAt||''}"\n`;
+      csv += `"${csvEscape(p.name)}","${p.phone}","${csvEscape(p.treatment)}","${csvEscape(p.month)}","${csvEscape(p.notes)}","${!!p.sent}","${p.createdAt||''}","${p.year||''}","${p.id||''}"\n`;
     });
     const ts = new Date().toISOString().replace(/[:.]/g,'').slice(0,15);
     const a=document.createElement('a');
@@ -329,11 +570,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('#downloadCSV').onclick = ()=> exportCSVSnapshot('backup_pacientes');
 
   $('#deleteSelected').onclick = ()=>{
-    const ids = getSelectedIds().sort((a,b)=>b-a);
+    const ids = getSelectedIds();
     if(ids.length===0){ showBanner('⚠️ No hay seleccionados'); return; }
-    if(!confirm('Se hará un backup CSV y luego se borrarán los seleccionados. ¿Continuar?')) return;
+    if(!confirm(`Se hará un backup CSV y luego se borrarán ${ids.length} pacientes. ¿Continuar?`)) return;
     exportCSVSnapshot('backup_pre_borrado');
-    ids.forEach(i=> patients.splice(i,1));
+    patients = patients.filter(p=> !ids.includes(p.id));
     showBanner('🗑️ Seleccionados borrados');
     saveLocal(true);
   };
@@ -361,17 +602,25 @@ window.addEventListener('DOMContentLoaded',()=>{
     const rows = parseCSV(text.trim());
     if(rows.length && rows[0].length && /nombre/i.test(rows[0][0])) rows.shift();
     const imported = rows.map(c=>({
+      id: c[8] || newId(),
       name:c[0]||'',
       phone:sanitizePhone(c[1]||''),
       treatment:c[2]||'',
       month:c[3]||'',
       notes:c[4]||'',
       sent:String(c[5]||'').toLowerCase()==='true',
-      createdAt:c[6]||new Date().toISOString()
+      createdAt:c[6]||nowISO(),
+      year: c[7] ? Number(c[7]) : '',
+      updatedAt: nowISO()
     })).filter(p=>p.name||p.phone);
-    patients = patients.concat(imported);
+
+    // Si un paciente del backup ya está en la lista (mismo id), no se duplica.
+    const existentes = new Set(patients.map(p=>p.id));
+    const nuevos = imported.filter(p=>!existentes.has(p.id));
+    const repetidos = imported.length - nuevos.length;
+    patients = patients.concat(nuevos);
     saveLocal(true);
-    showBanner(`📥 Añadidos ${imported.length} pacientes del backup`);
+    showBanner(`📥 Añadidos ${nuevos.length} pacientes del backup` + (repetidos?` · ${repetidos} ya estaban y no se duplicaron`:''));
     e.target.value='';
   });
 
@@ -388,7 +637,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     gapi.client.setToken(null);
   }
   function setLastSyncNow(){
-    const ts = new Date().toISOString();
+    const ts = nowISO();
     localStorage.setItem(LASTSYNC_KEY, ts);
     setDriveStatus(true, `Conectado a Google Drive · Última sync: ${fmtDateTime(ts)}`);
   }
@@ -412,39 +661,109 @@ window.addEventListener('DOMContentLoaded',()=>{
     // Intentar usar token guardado sin pedir login
     await applyStoredTokenIfAny();
     const last = localStorage.getItem(LASTSYNC_KEY);
-    if(last){ setDriveStatus(true, `Conectado a Google Drive · Última sync: ${fmtDateTime(last)}`); }
+    if(last && accessToken){ setDriveStatus(true, `Conectado a Google Drive · Última sync: ${fmtDateTime(last)}`); }
+    arrancarRenovacionAutomatica();
   });
 
-  $('#btnDrive').onclick = ()=>{
-    if(reauthInProgress) return;
+  // --- Renovación del permiso de Google ---
+  // El permiso que da Google caduca aproximadamente cada hora. Antes había que
+  // volver a pulsar "Conectar Drive" a mano cada vez (y cada pulsación creaba
+  // un archivo nuevo en Drive). Ahora se renueva solo y en silencio.
+  function initTokenClient(){
+    if(tokenClient) return tokenClient;
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID, scope: SCOPES,
-      callback: async (r)=>{
-        reauthInProgress=false;
+      callback: (r)=>{
+        const resolver = pendingTokenResolve; pendingTokenResolve=null; reauthInProgress=false;
         if(r && r.access_token){
           accessToken = r.access_token;
           gapi.client.setToken({access_token: accessToken});
           storeToken({access_token: accessToken, obtained_at: Date.now()});
           setDriveStatus(true, 'Conectado a Google Drive');
-          await loadOrCreateFile();
-          await syncToDrive();
+          if(resolver) resolver(true);
         }else{
-          setSyncError('Error de autenticación con Google');
-          showBanner('Error de autenticación con Google');
+          if(resolver) resolver(false);
         }
+      },
+      error_callback: ()=>{
+        const resolver = pendingTokenResolve; pendingTokenResolve=null; reauthInProgress=false;
+        if(resolver) resolver(false);
       }
     });
-    reauthInProgress=true;
-    tokenClient.requestAccessToken({prompt:''}); // no fuerza diálogos si ya está concedido
+    return tokenClient;
+  }
+
+  // Pide el permiso. Con prompt:'' Google no muestra ninguna ventana si el
+  // acceso ya estaba concedido y la sesión de Google sigue abierta.
+  function pedirToken(){
+    return new Promise(resolve=>{
+      if(pendingTokenResolve){ resolve(false); return; }   // ya hay una renovación en curso
+      pendingTokenResolve = resolve;
+      reauthInProgress = true;
+      try{ initTokenClient().requestAccessToken({prompt:''}); }
+      catch(e){ pendingTokenResolve=null; reauthInProgress=false; resolve(false); }
+      // Si Google no contesta (ventana bloqueada, sin sesión), no dejamos colgada la promesa
+      setTimeout(()=>{ if(pendingTokenResolve===resolve){ pendingTokenResolve=null; reauthInProgress=false; resolve(false); } }, 20000);
+    });
+  }
+
+  function tokenCaducando(){
+    const t = loadToken();
+    if(!t || !t.obtained_at) return true;
+    return (Date.now() - t.obtained_at) > 45*60*1000;   // Google lo caduca sobre los 60 min
+  }
+
+  // Renueva por adelantado: cada 20 minutos y al volver a la pestaña.
+  function arrancarRenovacionAutomatica(){
+    const revisar = async ()=>{
+      if(!accessToken || reauthInProgress) return;
+      if(tokenCaducando()){
+        const ok = await pedirToken();
+        if(ok && pendienteDeSync) await reintentarSync();
+      }else if(pendienteDeSync){
+        await reintentarSync();
+      }
+    };
+    setInterval(revisar, 20*60*1000);
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) revisar(); });
+    window.addEventListener('online', revisar);
+  }
+
+  async function reintentarSync(){
+    try{ await syncToDrive(); pendienteDeSync=false; showBanner('✅ Cambios pendientes guardados en Drive'); }
+    catch(_){ /* sigue pendiente, se reintenta en la siguiente ronda */ }
+  }
+
+  $('#btnDrive').onclick = async ()=>{
+    if(reauthInProgress) return;
+    const ok = await pedirToken();
+    if(!ok){
+      setSyncError('No se pudo conectar con Google. Si se abrió una ventana y se bloqueó, permite las ventanas emergentes.');
+      showBanner('⚠️ No se pudo conectar con Google Drive', 6000);
+      return;
+    }
+    await loadOrCreateFile();
+    await syncToDrive();
+    pendienteDeSync=false;
   };
 
-  async function guardedRequest(reqFn){
+  // Si Google rechaza la petición por permiso caducado, lo renueva y reintenta
+  // una vez, sin molestar a quien esté usando la aplicación.
+  async function guardedRequest(reqFn, reintentar=true){
     try{
       return await reqFn();
     }catch(err){
       const status = (err && err.status) || (err?.result?.error?.code);
+      if((status===401 || status===403) && reintentar){
+        setDriveStatus(false, 'Renovando la conexión con Google Drive...');
+        const ok = await pedirToken();
+        if(ok) return await guardedRequest(reqFn, false);
+        setSyncError('La conexión con Drive ha caducado. Pulsa "Conectar Drive".');
+        clearToken();
+        throw err;
+      }
       if(status===401 || status===403){
-        setSyncError('Token caducado. Pulsa "Conectar Drive" para reautenticar.');
+        setSyncError('La conexión con Drive ha caducado. Pulsa "Conectar Drive".');
         clearToken();
         throw err;
       }
@@ -453,56 +772,137 @@ window.addEventListener('DOMContentLoaded',()=>{
     }
   }
 
+  // Busca el archivo de respaldo. Con el permiso `drive.file`, Drive solo devuelve
+  // los archivos que creó esta app, así que también recupera los que se subieron
+  // SIN NOMBRE por el fallo de la versión anterior.
   async function loadOrCreateFile(){
-    const res = await guardedRequest(()=> gapi.client.drive.files.list({ q:`name='${DRIVE_FILE_NAME}' and trashed=false`, fields:'files(id,name)' }));
-    if(res.result.files && res.result.files.length){
-      fileId = res.result.files[0].id;
-      localStorage.setItem(FILEID_KEY, fileId);
-      await loadFileFromDrive();
-    }else{
-      await createFileOnDrive();
-    }
-  }
-
-  async function createFileOnDrive(){
-    const body = JSON.stringify({ pacientes: patients });
-    const r = await guardedRequest(()=> gapi.client.request({
-      path:'/upload/drive/v3/files?uploadType=media', method:'POST',
-      headers:{'Content-Type':'application/json'}, body
+    const res = await guardedRequest(()=> gapi.client.drive.files.list({
+      q:'trashed=false',
+      fields:'files(id,name,modifiedTime,size)',
+      orderBy:'modifiedTime desc',
+      pageSize: 50
     }));
-    fileId = r.result && r.result.id;
-    localStorage.setItem(FILEID_KEY, fileId||'');
+    const files = (res.result.files||[]);
+
+    // La versión anterior creaba un archivo NUEVO cada vez que se volvía a pulsar
+    // "Conectar Drive", y nacía sin nombre. Tras meses de reconexiones puede haber
+    // varios respaldos sueltos: se leen TODOS y se fusionan para no perder nada.
+    const conNombre  = files.filter(f=> f.name===DRIVE_FILE_NAME);
+    const huerfanos  = files.filter(f=> !f.name || /^(untitled|sin t[ií]tulo)$/i.test(f.name));
+    const candidatos = [...conNombre, ...huerfanos];   // ya vienen por fecha, el más reciente primero
+
+    if(!candidatos.length){ await createFileOnDrive(); return; }
+
+    let totalNuevos=0, totalActualizados=0, leidos=0;
+    for(const f of candidatos){
+      try{
+        const r = await guardedRequest(()=> gapi.client.drive.files.get({ fileId: f.id, alt:'media' }));
+        const data = (typeof r.body==='string') ? JSON.parse(r.body) : (r.result||{});
+        if(Array.isArray(data.pacientes)){
+          const {nuevos, actualizados} = fusionar(data.pacientes);
+          totalNuevos+=nuevos; totalActualizados+=actualizados; leidos++;
+        }
+      }catch(e){ console.warn('No se pudo leer un respaldo de Drive:', f.id, e); }
+    }
+
+    // A partir de ahora se trabaja siempre sobre un único archivo, ya con nombre
+    const principal = conNombre[0] || huerfanos[0];
+    fileId = principal.id;
+    localStorage.setItem(FILEID_KEY, fileId);
+    if(principal.name !== DRIVE_FILE_NAME){
+      try{
+        await guardedRequest(()=> gapi.client.drive.files.update({ fileId, resource:{ name: DRIVE_FILE_NAME } }));
+      }catch(_){}
+    }
+
+    saveLocal(false);
+    render();
     setLastSyncNow();
-    showBanner('✅ Archivo creado en Drive');
+    if(huerfanos.length > 1 || (huerfanos.length===1 && !conNombre.length)){
+      showBanner(`🔧 Se han recuperado ${leidos} copias sueltas que había en Drive · ${totalNuevos} pacientes recuperados, ${totalActualizados} actualizados`, 9000);
+    }else{
+      showBanner(`📂 Datos combinados con Drive · ${totalNuevos} nuevos, ${totalActualizados} actualizados`, 6000);
+    }
   }
 
-  async function loadFileFromDrive(){
-    const r = await guardedRequest(()=> gapi.client.drive.files.get({ fileId, alt:'media' }));
-    const data = (typeof r.body==='string') ? JSON.parse(r.body) : (r.result||{});
-    if(Array.isArray(data.pacientes)){
-      patients = data.pacientes;
-      saveLocal(false);
-      render();
-      setLastSyncNow();
-      showBanner('📂 Datos cargados de Drive');
-    }else{
-      showBanner('Archivo en Drive vacío o incompatible');
-    }
+  // Sube el archivo CON su nombre. La versión anterior lo subía sin metadata,
+  // así que nacía sin nombre y después no volvía a encontrarlo nunca.
+  async function createFileOnDrive(){
+    const boundary = 'clinica'+Date.now();
+    const metadata = { name: DRIVE_FILE_NAME, mimeType:'application/json' };
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      JSON.stringify(metadata) +
+      `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
+      JSON.stringify({ pacientes: patients, actualizado: nowISO() }) +
+      `\r\n--${boundary}--`;
+    const r = await guardedRequest(()=> gapi.client.request({
+      path:'/upload/drive/v3/files',
+      method:'POST',
+      params:{ uploadType:'multipart' },
+      headers:{'Content-Type':`multipart/related; boundary="${boundary}"`},
+      body
+    }));
+    fileId = (r.result && r.result.id) || '';
+    localStorage.setItem(FILEID_KEY, fileId);
+    setLastSyncNow();
+    showBanner('✅ Archivo de respaldo creado en Drive');
+  }
+
+  // Une lo de Drive con lo local en vez de sobrescribir.
+  // Para cada paciente gana la versión modificada más recientemente,
+  // y los que solo estén en un sitio se conservan.
+  function fusionar(remotos){
+    const porId = new Map();
+    const porTelefono = new Map();
+    patients.forEach(p=>{
+      porId.set(p.id, p);
+      if(p.phone) porTelefono.set(sanitizePhone(p.phone), p);
+    });
+    let nuevos=0, actualizados=0;
+    remotos.forEach(r=>{
+      if(!r || (!r.name && !r.phone)) return;
+      r.phone = sanitizePhone(r.phone);
+      // Las copias antiguas de Drive no tienen id: se casan por teléfono, que es
+      // lo que identifica de verdad a un paciente. Sin esto se duplicaría la lista entera.
+      let local = (r.id && porId.get(r.id)) || (r.phone && porTelefono.get(r.phone)) || null;
+      if(!local){
+        if(!r.id) r.id = newId();
+        if(!r.updatedAt) r.updatedAt = r.createdAt || nowISO();
+        porId.set(r.id, r);
+        if(r.phone) porTelefono.set(r.phone, r);
+        nuevos++;
+        return;
+      }
+      const tR = new Date(r.updatedAt||r.createdAt||0).getTime();
+      const tL = new Date(local.updatedAt||local.createdAt||0).getTime();
+      if(tR > tL){
+        // Gana la versión remota, pero conservando el id que ya tenía aquí
+        const fusionado = Object.assign({}, r, {id: local.id, createdAt: local.createdAt||r.createdAt});
+        porId.set(local.id, fusionado);
+        if(fusionado.phone) porTelefono.set(fusionado.phone, fusionado);
+        actualizados++;
+      }
+    });
+    patients = [...porId.values()];
+    return {nuevos, actualizados};
   }
 
   async function syncToDrive(){
-    if(!fileId || !accessToken) return;
-    const body = JSON.stringify({ pacientes: patients });
+    if(!fileId || !accessToken){ pendienteDeSync=true; return; }
+    const body = JSON.stringify({ pacientes: patients, actualizado: nowISO() });
     await guardedRequest(()=> gapi.client.request({
       path:`/upload/drive/v3/files/${fileId}?uploadType=media`,
       method:'PATCH', headers:{'Content-Type':'application/json'}, body
     }));
+    pendienteDeSync = false;
     setLastSyncNow();
   }
 
   // ---- Events ----
   $('#search').addEventListener('input', render);
   $('#filterMonth').addEventListener('change', render);
+  $('#filterYear').addEventListener('change', render);
   $('#filterContact').addEventListener('change', render);
   $('#order').addEventListener('change', render);
 
