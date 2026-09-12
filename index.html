@@ -130,7 +130,7 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
           <hr style="margin:12px 0;border:none;border-top:1px dashed rgba(150,120,125,0.12)" />
           <div class="small">Plantilla WhatsApp (editable):</div>
           <textarea id="template" rows="5" style="width:100%;margin-top:8px">Hola {{nombre}}, ya tenemos los días disponibles del mes de {{mes}}, para poder gestionar tu cita dime si prefieres la cita por la mañana a mediodía o la tarde. Si no has recibido respuesta en un plazo de 2 ó 3 días laborables, por favor vuelve a escribirnos. Agradecemos tu comprensión. Gracias, un saludo.</textarea>
-          <div class="small" style="margin-top:6px">La plantilla solo se usa en «Abrir uno a uno». El envío por tanda usa la plantilla aprobada por Meta.</div>
+          <div class="small" style="margin-top:6px">Se guarda sola al salir del recuadro, y viaja contigo en Drive. Solo se usa en «Abrir uno a uno»: el envío por tanda usa la plantilla aprobada por Meta.</div>
         </div>
       </div>
     </div>
@@ -143,7 +143,7 @@ th:nth-child(3), td:nth-child(3){position:sticky;left:240px;z-index:2;background
 <div class="modal-bg" id="configModal">
   <div class="modal">
     <h3>⚙️ Envío por Supernova</h3>
-    <div class="small">Estos datos se guardan solo en este ordenador. No se publican en internet.</div>
+    <div class="small">Se guardan en tu Google Drive, junto al respaldo de pacientes, para no tener que escribirlos en cada ordenador. Nunca se publican en internet.</div>
     <label for="cfgUrl">Dirección de envío (la facilita el equipo técnico)</label>
     <input id="cfgUrl" type="text" placeholder="https://..." />
     <label for="cfgKey">Clave de seguridad</label>
@@ -415,10 +415,35 @@ window.addEventListener('DOMContentLoaded',()=>{
     return $$('#patientsTable tbody .sel:checked').map(cb=> cb.dataset.id);
   }
 
-  // ---- Configuración del envío (se guarda solo en este navegador) ----
-  function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'null'); }catch(_){ return null; } }
+  // ---- Configuración del envío ----
+  // Vive en Drive, junto al respaldo de pacientes, para no tener que volver a
+  // teclearla en cada ordenador. El navegador solo guarda una copia local, que
+  // es la que se usa mientras Drive no esté conectado.
+  function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'null') || {}; }catch(_){ return {}; } }
+
+  // Guarda los ajustes: en este navegador siempre, y en Drive si hay conexión.
+  function guardarCfg(cambios, aviso){
+    const cfg = Object.assign(loadCfg(), cambios, { actualizado: nowISO() });
+    localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+    if(accessToken && fileId){
+      syncToDrive()
+        .then(()=>{ if(aviso) showBanner('✅ ' + aviso + ' · guardado también en Drive'); })
+        .catch(()=>{ pendienteDeSync = true; if(aviso) showBanner('⚠️ ' + aviso + ', pero no se pudo subir a Drive. Se reintentará.', 6000); });
+    }else if(aviso){
+      showBanner('✅ ' + aviso + ' · solo en este ordenador (conecta Drive para llevarlo a los demás)', 6000);
+    }
+    return cfg;
+  }
+
+  // Vuelca en pantalla los ajustes guardados (la plantilla es lo único visible)
+  function aplicarCfg(cfg){
+    if(cfg && typeof cfg.plantilla === 'string' && cfg.plantilla.trim()){
+      $('#template').value = cfg.plantilla;
+    }
+  }
+
   $('#btnConfig').onclick = ()=>{
-    const c = loadCfg()||{};
+    const c = loadCfg();
     $('#cfgUrl').value = c.url||'';
     $('#cfgKey').value = c.key||'';
     $('#configModal').style.display='flex';
@@ -427,10 +452,17 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('#cfgSave').onclick = ()=>{
     const url=$('#cfgUrl').value.trim(), key=$('#cfgKey').value.trim();
     if(url && !/^https:\/\//i.test(url)){ alert('La dirección debe empezar por https://'); return; }
-    localStorage.setItem(CFG_KEY, JSON.stringify({url,key}));
+    guardarCfg({ url, key }, 'Configuración guardada');
     $('#configModal').style.display='none';
-    showBanner('✅ Configuración guardada');
   };
+
+  // La plantilla que edite Blanca se guarda sola al salir del recuadro.
+  // Antes se perdía en cada recarga: había que cambiar el código para tocarla.
+  $('#template').addEventListener('blur', ()=>{
+    const texto = $('#template').value;
+    if(texto === (loadCfg().plantilla || '')) return;   // no ha cambiado nada
+    guardarCfg({ plantilla: texto }, 'Plantilla guardada');
+  });
 
   // ---- Envío por tanda (Supernova) ----
   $('#sendBatch').onclick = async ()=>{
@@ -794,6 +826,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!candidatos.length){ await createFileOnDrive(); return; }
 
     let totalNuevos=0, totalActualizados=0, leidos=0;
+    let ajustesRemotos = null;
     for(const f of candidatos){
       try{
         const r = await guardedRequest(()=> gapi.client.drive.files.get({ fileId: f.id, alt:'media' }));
@@ -802,7 +835,27 @@ window.addEventListener('DOMContentLoaded',()=>{
           const {nuevos, actualizados} = fusionar(data.pacientes);
           totalNuevos+=nuevos; totalActualizados+=actualizados; leidos++;
         }
+        // La dirección, la clave y la plantilla viajan en el mismo archivo: así no
+        // hay que volver a teclearlas en cada ordenador. Nos quedamos con la más reciente.
+        if(data.ajustes && data.ajustes.actualizado){
+          if(!ajustesRemotos || new Date(data.ajustes.actualizado) > new Date(ajustesRemotos.actualizado)){
+            ajustesRemotos = data.ajustes;
+          }
+        }
       }catch(e){ console.warn('No se pudo leer un respaldo de Drive:', f.id, e); }
+    }
+
+    // Los ajustes de Drive solo pisan a los de este ordenador si son más nuevos
+    let cfgRecuperada = false;
+    if(ajustesRemotos){
+      const local = loadCfg();
+      const tR = new Date(ajustesRemotos.actualizado||0).getTime();
+      const tL = new Date(local.actualizado||0).getTime();
+      if(tR > tL){
+        localStorage.setItem(CFG_KEY, JSON.stringify(ajustesRemotos));
+        aplicarCfg(ajustesRemotos);
+        cfgRecuperada = !!(ajustesRemotos.url || ajustesRemotos.plantilla);
+      }
     }
 
     // A partir de ahora se trabaja siempre sobre un único archivo, ya con nombre
@@ -820,6 +873,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     setLastSyncNow();
     if(huerfanos.length > 1 || (huerfanos.length===1 && !conNombre.length)){
       showBanner(`🔧 Se han recuperado ${leidos} copias sueltas que había en Drive · ${totalNuevos} pacientes recuperados, ${totalActualizados} actualizados`, 9000);
+    }else if(cfgRecuperada){
+      showBanner(`📂 Datos combinados con Drive · ${totalNuevos} nuevos, ${totalActualizados} actualizados · ⚙️ configuración y plantilla recuperadas`, 8000);
     }else{
       showBanner(`📂 Datos combinados con Drive · ${totalNuevos} nuevos, ${totalActualizados} actualizados`, 6000);
     }
@@ -834,7 +889,7 @@ window.addEventListener('DOMContentLoaded',()=>{
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
       JSON.stringify(metadata) +
       `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
-      JSON.stringify({ pacientes: patients, actualizado: nowISO() }) +
+      JSON.stringify({ pacientes: patients, ajustes: loadCfg(), actualizado: nowISO() }) +
       `\r\n--${boundary}--`;
     const r = await guardedRequest(()=> gapi.client.request({
       path:'/upload/drive/v3/files',
@@ -890,7 +945,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   async function syncToDrive(){
     if(!fileId || !accessToken){ pendienteDeSync=true; return; }
-    const body = JSON.stringify({ pacientes: patients, actualizado: nowISO() });
+    const body = JSON.stringify({ pacientes: patients, ajustes: loadCfg(), actualizado: nowISO() });
     await guardedRequest(()=> gapi.client.request({
       path:`/upload/drive/v3/files/${fileId}?uploadType=media`,
       method:'PATCH', headers:{'Content-Type':'application/json'}, body
@@ -906,6 +961,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('#filterContact').addEventListener('change', render);
   $('#order').addEventListener('change', render);
 
+  aplicarCfg(loadCfg());   // la plantilla guardada, antes de pintar nada
   render();
 });
 </script>
